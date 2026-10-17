@@ -1,0 +1,6 @@
+{
+  "name": "Focuslist — Task & Priority Manager",
+  "description": "A clean, fast task and priority manager with project lists, subtasks, keyboard shortcuts, and local persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
