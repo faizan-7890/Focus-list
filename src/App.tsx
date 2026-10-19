@@ -7,6 +7,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   CheckCheck,
+  CheckCircle2,
+  Command,
+  Download,
   Edit3,
   Flag,
   Kanban,
@@ -15,15 +18,19 @@ import {
   Plus,
   Search,
   Trash2,
+  Upload,
   X,
 } from 'lucide-react';
 import {
   addSubtask,
+  applyImportedTodos,
   clearCompletedTodos,
   computeTodoStats,
   createTodo,
   deleteSubtask,
   deleteTodo,
+  exportTodosToCsv,
+  exportTodosToJson,
   filterAndSortTodos,
   formatDueDateLabel,
   getInitialDemoTodos,
@@ -35,6 +42,7 @@ import {
   updateTodo,
   type Category,
   type CreateTodoInput,
+  type ImportMode,
   type Priority,
   type SortBy,
   type StatusFilter,
@@ -46,6 +54,8 @@ import { TaskInput } from './components/TaskInput';
 import { TaskItem } from './components/TaskItem';
 import { EditTaskModal } from './components/EditTaskModal';
 import { FocusPanel } from './components/FocusPanel';
+import { CommandPalette } from './components/CommandPalette';
+import { PortabilityModal } from './components/PortabilityModal';
 
 const STORAGE_KEY = 'focuslist_todos_v1';
 
@@ -146,6 +156,13 @@ export default function App() {
   const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
 
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [portabilityModalState, setPortabilityModalState] = useState<{
+    isOpen: boolean;
+    tab: 'export' | 'import';
+  }>({ isOpen: false, tab: 'export' });
+  const [statusBanner, setStatusBanner] = useState<string | null>(null);
+
   const taskInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -157,9 +174,22 @@ export default function App() {
     }
   }, [todos]);
 
-  // Keyboard shortcuts: '/' focuses search, 'n' focuses new task input
+  const showTransientNotice = (msg: string) => {
+    setStatusBanner(msg);
+    window.setTimeout(() => {
+      setStatusBanner((prev) => (prev === msg ? null : prev));
+    }, 3500);
+  };
+
+  // Global keyboard shortcuts: Cmd/Ctrl+K opens Command Palette; '/' focuses search; 'n' focuses new task input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
       const target = e.target as HTMLElement | null;
       const isInputFocused =
         target &&
@@ -168,17 +198,24 @@ export default function App() {
           target.tagName === 'SELECT' ||
           target.isContentEditable);
 
-      if (!isInputFocused && e.key === '/') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (!isInputFocused && (e.key === 'n' || e.key === 'N')) {
-        e.preventDefault();
-        taskInputRef.current?.focus();
+      if (
+        !isInputFocused &&
+        !isCommandPaletteOpen &&
+        !portabilityModalState.isOpen &&
+        !editingTodo
+      ) {
+        if (e.key === '/') {
+          e.preventDefault();
+          searchInputRef.current?.focus();
+        } else if (e.key === 'n' || e.key === 'N') {
+          e.preventDefault();
+          taskInputRef.current?.focus();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isCommandPaletteOpen, portabilityModalState.isOpen, editingTodo]);
 
   const stats = useMemo(
     () => computeTodoStats(todos, todayDate),
@@ -241,6 +278,7 @@ export default function App() {
     setStatusFilter('all');
     setActiveView('all');
     setSearchQuery('');
+    showTransientNotice('Restored sample workspace tasks.');
   };
 
   const handleMoveOrder = (id: string, direction: 'up' | 'down') => {
@@ -257,6 +295,58 @@ export default function App() {
 
   const handleDeleteSubtask = (todoId: string, subtaskId: string) => {
     setTodos((prev) => deleteSubtask(prev, todoId, subtaskId));
+  };
+
+  const triggerFileDownload = (
+    content: string,
+    filename: string,
+    mimeType: string
+  ) => {
+    try {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Ignore if restricted in sandboxed frame
+    }
+  };
+
+  const handleExportJson = () => {
+    const content = exportTodosToJson(todos);
+    triggerFileDownload(
+      content,
+      `focuslist-backup-${todayDate}.json`,
+      'application/json'
+    );
+    showTransientNotice(`Exported ${todos.length} tasks to JSON backup.`);
+  };
+
+  const handleExportCsv = () => {
+    const content = exportTodosToCsv(todos);
+    triggerFileDownload(
+      content,
+      `focuslist-tasks-${todayDate}.csv`,
+      'text/csv;charset=utf-8;'
+    );
+    showTransientNotice(`Exported ${todos.length} tasks to CSV spreadsheet.`);
+  };
+
+  const handleConfirmImport = (
+    importedTodos: TodoItem[],
+    mode: ImportMode
+  ) => {
+    setTodos((prev) => applyImportedTodos(prev, importedTodos, mode));
+    showTransientNotice(
+      `Imported ${importedTodos.length} ${
+        importedTodos.length === 1 ? 'task' : 'tasks'
+      } (${mode === 'merge' ? 'merged with workspace' : 'replaced workspace'}).`
+    );
   };
 
   const currentHeader = VIEW_TITLES[activeView];
@@ -357,12 +447,41 @@ export default function App() {
           stats={stats}
           onClearCompleted={handleClearCompleted}
           onResetDemo={handleResetDemo}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onOpenPortability={(tab) =>
+            setPortabilityModalState({ isOpen: true, tab })
+          }
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1160px] w-full mx-auto">
           <div className="flex flex-col xl:flex-row items-start gap-6">
             {/* Primary Center Workspace Column */}
             <div className="flex-1 w-full min-w-0 space-y-5">
+              {/* Inline Confirmation Notice */}
+              {statusBanner && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="bg-emerald-950 text-emerald-100 border border-emerald-800 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-3"
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <CheckCircle2
+                      className="w-4 h-4 text-emerald-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>{statusBanner}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setStatusBanner(null)}
+                    aria-label="Dismiss notification"
+                    className="text-emerald-300 hover:text-white p-0.5 rounded"
+                  >
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+
               {/* Architectural Daily Briefing Banner */}
               <section
                 aria-label="Workspace overview banner"
@@ -539,20 +658,50 @@ export default function App() {
                     </div>
                   </div>
 
-                  {todos.length > 0 && (
+                  {/* Quick Actions: Import/Export & Complete All */}
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={handleToggleAll}
-                      className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-stone-200/90 hover:bg-stone-50 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                      onClick={() => setIsCommandPaletteOpen(true)}
+                      className="lg:hidden px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-stone-200/90 hover:bg-stone-50 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
                     >
-                      <CheckCheck className="w-3.5 h-3.5" aria-hidden="true" />
-                      <span>
-                        {todos.every((t) => t.completed)
-                          ? 'Mark All Active'
-                          : 'Complete All'}
-                      </span>
+                      <Command className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Commands</span>
                     </button>
-                  )}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPortabilityModalState({
+                          isOpen: true,
+                          tab: 'export',
+                        })
+                      }
+                      aria-label="Export or Import Tasks"
+                      className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-stone-200/90 hover:bg-stone-50 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                    >
+                      <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Import / Export</span>
+                    </button>
+
+                    {todos.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleToggleAll}
+                        className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-stone-200/90 hover:bg-stone-50 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                      >
+                        <CheckCheck
+                          className="w-3.5 h-3.5"
+                          aria-hidden="true"
+                        />
+                        <span>
+                          {todos.every((t) => t.completed)
+                            ? 'Mark All Active'
+                            : 'Complete All'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Search & Sort Controls Row */}
@@ -851,6 +1000,47 @@ export default function App() {
           onSave={handleUpdateTodo}
         />
       )}
+
+      {/* Command Palette (Cmd/Ctrl + K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        todos={todos}
+        onSelectView={setActiveView}
+        onSelectStatus={setStatusFilter}
+        onSelectLayout={setLayoutMode}
+        onFocusNewTask={() => taskInputRef.current?.focus()}
+        onQuickCreateTask={(title) => {
+          handleAddTodo({
+            title,
+            category: defaultCategoryForNewTask,
+            priority: 'medium',
+          });
+          showTransientNotice(`Added task "${title}".`);
+        }}
+        onToggleTodo={handleToggleTodo}
+        onToggleAll={handleToggleAll}
+        onClearCompleted={handleClearCompleted}
+        onResetDemo={handleResetDemo}
+        onExportJson={handleExportJson}
+        onExportCsv={handleExportCsv}
+        onOpenImportModal={() =>
+          setPortabilityModalState({ isOpen: true, tab: 'import' })
+        }
+      />
+
+      {/* JSON & CSV Import / Export Portability Modal */}
+      <PortabilityModal
+        isOpen={portabilityModalState.isOpen}
+        initialTab={portabilityModalState.tab}
+        onClose={() =>
+          setPortabilityModalState((prev) => ({ ...prev, isOpen: false }))
+        }
+        todos={todos}
+        onDownloadJson={handleExportJson}
+        onDownloadCsv={handleExportCsv}
+        onConfirmImport={handleConfirmImport}
+      />
     </div>
   );
 }

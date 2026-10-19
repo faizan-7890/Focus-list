@@ -15,6 +15,10 @@ import {
   moveTodoOrder,
   formatTimerDisplay,
   getTomorrowIsoDate,
+  exportTodosToJson,
+  exportTodosToCsv,
+  parseImportedTasks,
+  applyImportedTodos,
   type TodoItem,
 } from './todoLogic.ts';
 
@@ -236,4 +240,63 @@ test('formatTimerDisplay and getTomorrowIsoDate format accurately', () => {
   assert.equal(formatTimerDisplay(65), '01:05');
   assert.equal(formatTimerDisplay(0), '00:00');
   assert.equal(getTomorrowIsoDate('2026-10-17'), '2026-10-18');
+});
+
+test('JSON and CSV export and import round-trip tasks, subtasks, and handle merge vs replace', () => {
+  let list = createTodo([], {
+    title: 'Prepare board deck, Q4',
+    notes: 'Include revenue & retention charts',
+    priority: 'high',
+    category: 'Work',
+    dueDate: TODAY,
+    subtasks: [
+      { title: 'Draft executive summary', completed: true },
+      { title: 'Verify ARR table', completed: false },
+    ],
+  });
+
+  // 1. JSON round-trip
+  const jsonStr = exportTodosToJson(list);
+  const parsedJson = parseImportedTasks(jsonStr, 'json');
+  assert.equal(parsedJson.errors.length, 0);
+  assert.equal(parsedJson.validTodos.length, 1);
+  assert.equal(parsedJson.validTodos[0].title, 'Prepare board deck, Q4');
+  assert.equal(parsedJson.totalSubtasks, 2);
+  assert.equal(parsedJson.validTodos[0].subtasks[0].completed, true);
+
+  // 2. CSV round-trip (with commas in title and pipe-encoded subtasks)
+  const csvStr = exportTodosToCsv(list);
+  const parsedCsv = parseImportedTasks(csvStr, 'csv');
+  assert.equal(parsedCsv.errors.length, 0);
+  assert.equal(parsedCsv.validTodos.length, 1);
+  assert.equal(parsedCsv.validTodos[0].title, 'Prepare board deck, Q4');
+  assert.equal(parsedCsv.validTodos[0].priority, 'high');
+  assert.equal(parsedCsv.validTodos[0].category, 'Work');
+  assert.equal(parsedCsv.totalSubtasks, 2);
+  assert.equal(
+    parsedCsv.validTodos[0].subtasks[0].title,
+    'Draft executive summary'
+  );
+  assert.equal(parsedCsv.validTodos[0].subtasks[0].completed, true);
+
+  // 3. Merge vs Replace mode
+  const newImport = createTodo([], {
+    title: 'Imported study task',
+    priority: 'low',
+    category: 'Study',
+  });
+  const merged = applyImportedTodos(list, newImport, 'merge');
+  assert.equal(merged.length, 2);
+  assert.equal(merged[0].title, 'Imported study task');
+
+  const replaced = applyImportedTodos(list, newImport, 'replace');
+  assert.equal(replaced.length, 1);
+  assert.equal(replaced[0].title, 'Imported study task');
+
+  // 4. Validation error reporting on malformed CSV row
+  const badCsv = 'Title,Status,Priority\n,active,high\nValid Task,completed,low';
+  const parsedWithError = parseImportedTasks(badCsv, 'csv');
+  assert.equal(parsedWithError.validTodos.length, 1);
+  assert.equal(parsedWithError.errors.length, 1);
+  assert.ok(parsedWithError.errors[0].includes('Row 2'));
 });

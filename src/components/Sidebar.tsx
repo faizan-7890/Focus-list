@@ -5,10 +5,13 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Command,
+  Download,
   Flag,
   Layers,
   RotateCcw,
   ShoppingBag,
+  Upload,
   User,
 } from 'lucide-react';
 import type { Category, TodoStats, ViewFilter } from '../utils/todoLogic';
@@ -19,6 +22,8 @@ interface SidebarProps {
   stats: TodoStats;
   onClearCompleted: () => void;
   onResetDemo: () => void;
+  onOpenCommandPalette: () => void;
+  onOpenPortability: (tab: 'export' | 'import') => void;
 }
 
 const CATEGORY_META: Array<{
@@ -54,6 +59,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   stats,
   onClearCompleted,
   onResetDemo,
+  onOpenCommandPalette,
+  onOpenPortability,
 }) => {
   const smartViews: Array<{
     id: ViewFilter;
@@ -149,22 +156,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Desktop Full Navigation (visible lg and up) */}
       <div className="hidden lg:block space-y-6">
-        {/* Executive Workspace Identity Card */}
-        <div className="flex items-center gap-3 px-2.5 py-2 border-b border-stone-200/80 pb-4">
-          <div
-            aria-hidden="true"
-            className="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-display font-bold text-xs tracking-wider shrink-0"
+        {/* Executive Workspace Identity Card + Quick Command Trigger */}
+        <div className="space-y-3 border-b border-stone-200/80 pb-4">
+          <div className="flex items-center gap-3 px-2">
+            <div
+              aria-hidden="true"
+              className="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-display font-bold text-xs tracking-wider shrink-0"
+            >
+              FL
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate font-display">
+                Personal Workspace
+              </p>
+              <p className="text-xs text-slate-500 truncate">
+                Daily Priority Planner
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-stone-100 hover:bg-stone-200/80 text-slate-700 transition-colors whitespace-nowrap shrink-0"
           >
-            FL
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate font-display">
-              Personal Workspace
-            </p>
-            <p className="text-xs text-slate-500 truncate">
-              Daily Priority Planner
-            </p>
-          </div>
+            <span className="flex items-center gap-2">
+              <Command className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
+              <span>Command Palette</span>
+            </span>
+            <kbd className="font-mono text-[11px] text-slate-500 bg-white px-1.5 py-0.5 rounded border border-stone-200">
+              Ctrl+K
+            </kbd>
+          </button>
         </div>
 
         {/* Smart Views */}
@@ -243,7 +266,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Progress & Quick Actions Footer (Desktop) */}
+      {/* Progress, Data Portability & Quick Actions Footer (Desktop) */}
       <div className="hidden lg:block pt-5 mt-6 border-t border-stone-200/80 space-y-4">
         <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3.5 space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-600">
@@ -271,6 +294,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               style={{ transform: `scaleX(${stats.completionRate / 100})` }}
             />
           </div>
+        </div>
+
+        {/* JSON / CSV Backup & Import Buttons */}
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => onOpenPortability('export')}
+            className="py-2 px-2.5 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+          >
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Export</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenPortability('import')}
+            className="py-2 px-2.5 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+          >
+            <Upload className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Import</span>
+          </button>
         </div>
 
         <div className="flex flex-col gap-1.5">

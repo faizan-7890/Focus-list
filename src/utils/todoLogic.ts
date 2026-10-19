@@ -455,3 +455,437 @@ export function getInitialDemoTodos(todayDate: string): TodoItem[] {
     },
   ];
 }
+
+export type ImportMode = 'merge' | 'replace';
+
+export interface ImportValidationResult {
+  validTodos: TodoItem[];
+  errors: string[];
+  sourceFormat: 'json' | 'csv';
+  totalSubtasks: number;
+}
+
+const VALID_PRIORITIES: Priority[] = ['low', 'medium', 'high'];
+const VALID_CATEGORIES: Category[] = ['Work', 'Personal', 'Errands', 'Study'];
+
+export function exportTodosToJson(todos: TodoItem[]): string {
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    count: todos.length,
+    todos,
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+function escapeCsvCell(value: string): string {
+  const normalized = value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (
+    normalized.includes(',') ||
+    normalized.includes('"') ||
+    normalized.includes('\n')
+  ) {
+    return `"${normalized.replace(/"/g, '""')}"`;
+  }
+  return normalized;
+}
+
+export function serializeSubtasksForCsv(subtasks: Subtask[]): string {
+  return subtasks
+    .map((st) => `${st.completed ? '[x]' : '[ ]'} ${st.title}`)
+    .join(' | ');
+}
+
+export function parseSubtasksFromCsvCell(
+  cell: string,
+  now = Date.now()
+): Subtask[] {
+  if (!cell.trim()) return [];
+  return cell
+    .split('|')
+    .map((part, idx) => {
+      const trimmed = part.trim();
+      if (!trimmed) return null;
+      let completed = false;
+      let title = trimmed;
+      if (/^\[x\]/i.test(trimmed)) {
+        completed = true;
+        title = trimmed.replace(/^\[x\]\s*/i, '').trim();
+      } else if (/^\[\s*\]/.test(trimmed)) {
+        completed = false;
+        title = trimmed.replace(/^\[\s*\]\s*/, '').trim();
+      }
+      if (!title) return null;
+      return {
+        id: `sub_${now}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+        title,
+        completed,
+      };
+    })
+    .filter((st): st is Subtask => st !== null);
+}
+
+export function exportTodosToCsv(todos: TodoItem[]): string {
+  const headers = [
+    'Title',
+    'Status',
+    'Priority',
+    'Project',
+    'Due Date',
+    'Notes',
+    'Subtasks',
+  ];
+  const rows = todos.map((todo) => [
+    escapeCsvCell(todo.title),
+    escapeCsvCell(todo.completed ? 'completed' : 'active'),
+    escapeCsvCell(todo.priority),
+    escapeCsvCell(todo.category),
+    escapeCsvCell(todo.dueDate),
+    escapeCsvCell(todo.notes),
+    escapeCsvCell(serializeSubtasksForCsv(todo.subtasks)),
+  ]);
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+}
+
+function parseCsvRows(csvText: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i++) {
+    const ch = csvText[i];
+    const next = csvText[i + 1];
+
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        currentCell += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        currentCell += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        currentRow.push(currentCell);
+        currentCell = '';
+      } else if (ch === '\n' || (ch === '\r' && next === '\n')) {
+        if (ch === '\r') i++;
+        currentRow.push(currentCell);
+        if (currentRow.some((c) => c.trim().length > 0)) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentCell = '';
+      } else {
+        currentCell += ch;
+      }
+    }
+  }
+
+  currentRow.push(currentCell);
+  if (currentRow.some((c) => c.trim().length > 0)) {
+    rows.push(currentRow);
+  }
+  return rows;
+}
+
+function normalizePriority(raw: unknown): Priority {
+  const str = String(raw ?? '')
+    .trim()
+    .toLowerCase();
+  if (VALID_PRIORITIES.includes(str as Priority)) {
+    return str as Priority;
+  }
+  return 'medium';
+}
+
+function normalizeCategory(raw: unknown): Category {
+  const str = String(raw ?? '').trim();
+  const match = VALID_CATEGORIES.find(
+    (c) => c.toLowerCase() === str.toLowerCase()
+  );
+  return match ?? 'Work';
+}
+
+function normalizeDueDate(raw: unknown): string {
+  const str = String(raw ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+  return '';
+}
+
+export function parseImportedTasks(
+  rawContent: string,
+  formatHint?: 'json' | 'csv',
+  now = Date.now()
+): ImportValidationResult {
+  const trimmed = rawContent.trim();
+  if (!trimmed) {
+    return {
+      validTodos: [],
+      errors: ['Paste or upload non-empty JSON or CSV content to import.'],
+      sourceFormat: formatHint ?? 'json',
+      totalSubtasks: 0,
+    };
+  }
+
+  const detectedFormat: 'json' | 'csv' =
+    formatHint ??
+    (trimmed.startsWith('{') || trimmed.startsWith('[') ? 'json' : 'csv');
+
+  if (detectedFormat === 'json') {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const rawArray: unknown[] = Array.isArray(parsed)
+        ? parsed
+        : parsed && typeof parsed === 'object' && Array.isArray((parsed as { todos?: unknown[] }).todos)
+        ? (parsed as { todos: unknown[] }).todos
+        : [];
+
+      if (!Array.isArray(rawArray) || rawArray.length === 0) {
+        return {
+          validTodos: [],
+          errors: ['JSON payload does not contain a non-empty task array.'],
+          sourceFormat: 'json',
+          totalSubtasks: 0,
+        };
+      }
+
+      const validTodos: TodoItem[] = [];
+      const errors: string[] = [];
+
+      rawArray.forEach((entry, idx) => {
+        if (!entry || typeof entry !== 'object') {
+          errors.push(`Item #${idx + 1}: Invalid task object.`);
+          return;
+        }
+        const obj = entry as Record<string, unknown>;
+        const title = String(obj.title ?? '').trim();
+        if (!title) {
+          errors.push(`Item #${idx + 1}: Missing required task title.`);
+          return;
+        }
+        const subtasksRaw = Array.isArray(obj.subtasks) ? obj.subtasks : [];
+        const subtasks: Subtask[] = subtasksRaw
+          .map((st, sIdx) => {
+            if (!st || typeof st !== 'object') return null;
+            const stObj = st as Record<string, unknown>;
+            const stTitle = String(stObj.title ?? '').trim();
+            if (!stTitle) return null;
+            return {
+              id:
+                typeof stObj.id === 'string' && stObj.id.trim()
+                  ? stObj.id.trim()
+                  : `sub_${now}_${idx}_${sIdx}`,
+              title: stTitle,
+              completed: Boolean(stObj.completed),
+            };
+          })
+          .filter((st): st is Subtask => st !== null);
+
+        validTodos.push({
+          id:
+            typeof obj.id === 'string' && obj.id.trim()
+              ? obj.id.trim()
+              : `task_${now}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+          title,
+          notes: String(obj.notes ?? '').trim(),
+          completed: Boolean(obj.completed),
+          priority: normalizePriority(obj.priority),
+          category: normalizeCategory(obj.category),
+          dueDate: normalizeDueDate(obj.dueDate),
+          createdAt:
+            typeof obj.createdAt === 'number' ? obj.createdAt : now + idx,
+          order: typeof obj.order === 'number' ? obj.order : idx + 1,
+          subtasks,
+        });
+      });
+
+      const totalSubtasks = validTodos.reduce(
+        (sum, t) => sum + t.subtasks.length,
+        0
+      );
+
+      return {
+        validTodos,
+        errors,
+        sourceFormat: 'json',
+        totalSubtasks,
+      };
+    } catch (err) {
+      return {
+        validTodos: [],
+        errors: [
+          `Invalid JSON syntax: ${
+            err instanceof Error ? err.message : 'Unable to parse JSON'
+          }`,
+        ],
+        sourceFormat: 'json',
+        totalSubtasks: 0,
+      };
+    }
+  }
+
+  // CSV parsing
+  const rows = parseCsvRows(trimmed);
+  if (rows.length === 0) {
+    return {
+      validTodos: [],
+      errors: ['CSV content contains no rows.'],
+      sourceFormat: 'csv',
+      totalSubtasks: 0,
+    };
+  }
+
+  const firstRowLower = rows[0].map((c) => c.trim().toLowerCase());
+  const hasHeader =
+    firstRowLower.includes('title') ||
+    firstRowLower.includes('task') ||
+    firstRowLower.includes('priority') ||
+    firstRowLower.includes('project');
+
+  const colIndex = {
+    title: hasHeader
+      ? Math.max(
+          0,
+          firstRowLower.findIndex((h) => h === 'title' || h === 'task')
+        )
+      : 0,
+    status: hasHeader
+      ? firstRowLower.findIndex((h) => h === 'status' || h === 'completed')
+      : 1,
+    priority: hasHeader
+      ? firstRowLower.findIndex((h) => h === 'priority')
+      : 2,
+    category: hasHeader
+      ? firstRowLower.findIndex((h) => h === 'project' || h === 'category')
+      : 3,
+    dueDate: hasHeader
+      ? firstRowLower.findIndex(
+          (h) => h === 'due date' || h === 'duedate' || h === 'due'
+        )
+      : 4,
+    notes: hasHeader ? firstRowLower.findIndex((h) => h === 'notes') : 5,
+    subtasks: hasHeader
+      ? firstRowLower.findIndex((h) => h === 'subtasks' || h === 'steps')
+      : 6,
+  };
+
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  if (dataRows.length === 0) {
+    return {
+      validTodos: [],
+      errors: ['CSV file contains a header row but no task rows.'],
+      sourceFormat: 'csv',
+      totalSubtasks: 0,
+    };
+  }
+
+  const validTodos: TodoItem[] = [];
+  const errors: string[] = [];
+
+  dataRows.forEach((row, idx) => {
+    const lineNum = hasHeader ? idx + 2 : idx + 1;
+    const rawTitle = (row[colIndex.title] ?? '').trim();
+    if (!rawTitle) {
+      errors.push(`Row ${lineNum}: Missing task title.`);
+      return;
+    }
+
+    const rawStatus =
+      colIndex.status >= 0 ? (row[colIndex.status] ?? '').trim().toLowerCase() : '';
+    const completed =
+      rawStatus === 'completed' ||
+      rawStatus === 'true' ||
+      rawStatus === 'done' ||
+      rawStatus === 'yes';
+
+    const priority =
+      colIndex.priority >= 0
+        ? normalizePriority(row[colIndex.priority])
+        : 'medium';
+    const category =
+      colIndex.category >= 0
+        ? normalizeCategory(row[colIndex.category])
+        : 'Work';
+    const dueDate =
+      colIndex.dueDate >= 0 ? normalizeDueDate(row[colIndex.dueDate]) : '';
+    const notes =
+      colIndex.notes >= 0 ? (row[colIndex.notes] ?? '').trim() : '';
+    const subtasksCell =
+      colIndex.subtasks >= 0 ? (row[colIndex.subtasks] ?? '').trim() : '';
+    const subtasks = parseSubtasksFromCsvCell(subtasksCell, now + idx);
+
+    validTodos.push({
+      id: `task_${now}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+      title: rawTitle,
+      notes,
+      completed,
+      priority,
+      category,
+      dueDate,
+      createdAt: now + idx,
+      order: idx + 1,
+      subtasks,
+    });
+  });
+
+  const totalSubtasks = validTodos.reduce(
+    (sum, t) => sum + t.subtasks.length,
+    0
+  );
+
+  return {
+    validTodos,
+    errors,
+    sourceFormat: 'csv',
+    totalSubtasks,
+  };
+}
+
+export function applyImportedTodos(
+  existingTodos: TodoItem[],
+  importedTodos: TodoItem[],
+  mode: ImportMode
+): TodoItem[] {
+  if (importedTodos.length === 0) return existingTodos;
+
+  if (mode === 'replace') {
+    return importedTodos.map((t, idx) => ({
+      ...t,
+      order: idx + 1,
+    }));
+  }
+
+  // Merge mode: update existing matching IDs or prepend new tasks at top
+  const minOrder = existingTodos.reduce(
+    (min, item) => (item.order < min ? item.order : min),
+    0
+  );
+
+  const existingIds = new Set(existingTodos.map((t) => t.id));
+  const newTasks: TodoItem[] = [];
+  const updatedById = new Map<string, TodoItem>();
+
+  importedTodos.forEach((item, idx) => {
+    if (existingIds.has(item.id)) {
+      updatedById.set(item.id, item);
+    } else {
+      newTasks.push({
+        ...item,
+        order: minOrder - (importedTodos.length - idx),
+      });
+    }
+  });
+
+  const mergedExisting = existingTodos.map(
+    (item) => updatedById.get(item.id) ?? item
+  );
+
+  return [...newTasks, ...mergedExisting].sort((a, b) => a.order - b.order);
+}
