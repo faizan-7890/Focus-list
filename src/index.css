@@ -5,12 +5,22 @@
     --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+
+    /* Core Color Tokens */
+    --color-canvas: #F4F4F0;
+    --color-surface: #FFFFFF;
+    --color-ink: #0F172A;
+    --color-muted: #475569;
+    --color-line: #E7E5E4;
+    --color-accent: #0F172A;
+    --color-success: #059669;
+    --color-danger: #DC2626;
   }
 
   body {
     font-family: var(--font-sans);
-    background-color: #F4F4F0;
-    color: #0F172A;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
   }
 
@@ -21,6 +31,15 @@
   .font-mono {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

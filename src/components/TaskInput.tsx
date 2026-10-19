@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, FileText, Plus } from 'lucide-react';
+import { AlertCircle, Calendar, FileText, Plus } from 'lucide-react';
 import {
   getTomorrowIsoDate,
   type Category,
@@ -36,15 +36,18 @@ export const TaskInput: React.FC<TaskInputProps> = ({
   const [priority, setPriority] = useState<Priority>('medium');
   const [dueDate, setDueDate] = useState<string>(defaultDueDate);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const tomorrowDate = getTomorrowIsoDate(todayDate);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!title.trim()) {
-      setError('Please enter a task title before adding.');
+      setError('Enter a task title before adding.');
       return;
     }
+    setIsSubmitting(true);
     setError(null);
     onAddTodo({
       title: title.trim(),
@@ -56,6 +59,7 @@ export const TaskInput: React.FC<TaskInputProps> = ({
     setTitle('');
     setNotes('');
     setShowNotes(false);
+    setIsSubmitting(false);
   };
 
   return (
@@ -80,6 +84,8 @@ export const TaskInput: React.FC<TaskInputProps> = ({
             id="new-task-title"
             type="text"
             value={title}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'new-task-error' : undefined}
             onChange={(e) => {
               setTitle(e.target.value);
               if (error) setError(null);
@@ -100,7 +106,8 @@ export const TaskInput: React.FC<TaskInputProps> = ({
           </button>
           <button
             type="submit"
-            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            disabled={isSubmitting}
+            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           >
             <Plus className="w-4 h-4" aria-hidden="true" />
             <span>Add Task</span>
@@ -125,8 +132,13 @@ export const TaskInput: React.FC<TaskInputProps> = ({
       )}
 
       {error && (
-        <p role="alert" className="text-xs font-medium text-red-600">
-          {error}
+        <p
+          id="new-task-error"
+          role="alert"
+          className="text-xs font-medium text-red-600 flex items-center gap-1.5"
+        >
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
         </p>
       )}
 
