@@ -21,6 +21,7 @@ export interface TodoItem {
   createdAt: number;
   order: number;
   subtasks: Subtask[];
+  completedPomodoros?: number;
 }
 
 export interface CreateTodoInput {
@@ -99,6 +100,7 @@ export function createTodo(
     dueDate: input.dueDate ?? '',
     createdAt: now,
     order: minOrder - 1,
+    completedPomodoros: 0,
     subtasks: (input.subtasks ?? [])
       .map((st, idx) => ({
         id: `sub_${now}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
@@ -146,6 +148,14 @@ export function clearCompletedTodos(todos: TodoItem[]): TodoItem[] {
 
 export function toggleAllTodos(todos: TodoItem[], completed: boolean): TodoItem[] {
   return todos.map((todo) => ({ ...todo, completed }));
+}
+
+export function incrementPomodoro(todos: TodoItem[], id: string): TodoItem[] {
+  return todos.map((todo) =>
+    todo.id === id
+      ? { ...todo, completedPomodoros: (todo.completedPomodoros ?? 0) + 1 }
+      : todo
+  );
 }
 
 export function addSubtask(

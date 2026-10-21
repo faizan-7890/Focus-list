@@ -5,6 +5,7 @@ import {
   toggleTodo,
   updateTodo,
   deleteTodo,
+  incrementPomodoro,
   clearCompletedTodos,
   addSubtask,
   toggleSubtask,
@@ -85,6 +86,18 @@ test('toggleTodo, updateTodo, deleteTodo, and clearCompletedTodos manage task li
   // Delete removes Task A
   list = deleteTodo(list, idA);
   assert.equal(list.length, 0);
+});
+
+test('incrementPomodoro tracks focus session count accurately', () => {
+  let list = createTodo([], { title: 'Deep work target' });
+  const id = list[0].id;
+  assert.equal(list[0].completedPomodoros, 0);
+
+  list = incrementPomodoro(list, id);
+  assert.equal(list[0].completedPomodoros, 1);
+
+  list = incrementPomodoro(list, id);
+  assert.equal(list[0].completedPomodoros, 2);
 });
 
 test('subtask operations add, toggle, and delete subtasks cleanly', () => {
