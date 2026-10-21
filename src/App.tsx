@@ -35,6 +35,7 @@ import {
   formatDueDateLabel,
   getInitialDemoTodos,
   getTodayIsoDate,
+  incrementPomodoro,
   moveTodoOrder,
   toggleAllTodos,
   toggleSubtask,
@@ -56,6 +57,9 @@ import { EditTaskModal } from './components/EditTaskModal';
 import { FocusPanel } from './components/FocusPanel';
 import { CommandPalette } from './components/CommandPalette';
 import { PortabilityModal } from './components/PortabilityModal';
+import { ZenModeModal } from './components/ZenModeModal';
+import { useFocusTimer } from './hooks/useFocusTimer';
+import { playTaskCompleteSound } from './utils/soundEffects';
 
 const STORAGE_KEY = 'focuslist_todos_v1';
 
@@ -155,6 +159,16 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState<'list' | 'board'>('list');
   const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
+  const [isZenModeOpen, setIsZenModeOpen] = useState(false);
+
+  const timer = useFocusTimer((completedMode) => {
+    if (completedMode === 'focus') {
+      const targetId = focusedTaskId ?? (todos.find((t) => !t.completed)?.id);
+      if (targetId) {
+        setTodos((prev) => incrementPomodoro(prev, targetId));
+      }
+    }
+  });
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [portabilityModalState, setPortabilityModalState] = useState<{
@@ -244,7 +258,13 @@ export default function App() {
   };
 
   const handleToggleTodo = (id: string) => {
-    setTodos((prev) => toggleTodo(prev, id));
+    setTodos((prev) => {
+      const target = prev.find((t) => t.id === id);
+      if (target && !target.completed && timer.soundEnabled) {
+        playTaskCompleteSound();
+      }
+      return toggleTodo(prev, id);
+    });
   };
 
   const handleDeleteTodo = (id: string) => {
@@ -987,6 +1007,18 @@ export default function App() {
               stats={stats}
               activeView={activeView}
               onSelectView={setActiveView}
+              mode={timer.mode}
+              secondsLeft={timer.secondsLeft}
+              isRunning={timer.isRunning}
+              onToggleTimer={timer.toggleTimer}
+              onResetTimer={timer.resetTimer}
+              onSwitchMode={timer.switchMode}
+              onOpenZenMode={() => {
+                timer.requestNotificationPermission();
+                setIsZenModeOpen(true);
+              }}
+              soundEnabled={timer.soundEnabled}
+              onToggleSound={timer.toggleSound}
             />
           </div>
         </main>
@@ -1040,6 +1072,27 @@ export default function App() {
         onDownloadJson={handleExportJson}
         onDownloadCsv={handleExportCsv}
         onConfirmImport={handleConfirmImport}
+      />
+
+      {/* Fullscreen Zen Deep Work Mode */}
+      <ZenModeModal
+        isOpen={isZenModeOpen}
+        onClose={() => setIsZenModeOpen(false)}
+        todo={activeTodos.find((t) => t.id === focusedTaskId) ?? activeTodos[0] ?? null}
+        mode={timer.mode}
+        secondsLeft={timer.secondsLeft}
+        totalSeconds={timer.totalSeconds}
+        isRunning={timer.isRunning}
+        onToggleTimer={timer.toggleTimer}
+        onResetTimer={timer.resetTimer}
+        onSwitchMode={timer.switchMode}
+        onCompleteTask={(id) => {
+          handleToggleTodo(id);
+        }}
+        onToggleSubtask={handleToggleSubtask}
+        soundEnabled={timer.soundEnabled}
+        onToggleSound={timer.toggleSound}
+      />
       />
     </div>
   );

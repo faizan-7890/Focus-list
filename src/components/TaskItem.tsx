@@ -152,6 +152,19 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 </>
               )}
 
+              {Boolean(todo.completedPomodoros && todo.completedPomodoros > 0) && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span
+                    title={`${todo.completedPomodoros} focus session(s) completed`}
+                    className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[11px] font-medium font-mono"
+                  >
+                    <span>🍅</span>
+                    <span>{todo.completedPomodoros}</span>
+                  </span>
+                </>
+              )}
+
               <span aria-hidden="true">·</span>
               <button
                 type="button"

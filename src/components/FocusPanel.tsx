@@ -1,11 +1,20 @@
-import React, { useEffect, useState } from 'react';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
 import {
   CheckCircle2,
+  Maximize2,
   Pause,
   Play,
   RotateCcw,
+  Sparkles,
   Target,
   Timer,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import {
   formatTimerDisplay,
@@ -23,10 +32,16 @@ interface FocusPanelProps {
   stats: TodoStats;
   activeView: ViewFilter;
   onSelectView: (view: ViewFilter) => void;
+  mode: 'focus' | 'break';
+  secondsLeft: number;
+  isRunning: boolean;
+  onToggleTimer: () => void;
+  onResetTimer: () => void;
+  onSwitchMode: (mode: 'focus' | 'break') => void;
+  onOpenZenMode: () => void;
+  soundEnabled: boolean;
+  onToggleSound: () => void;
 }
-
-const FOCUS_SECONDS = 25 * 60;
-const BREAK_SECONDS = 5 * 60;
 
 const PROJECT_BARS: Array<{
   category: Category;
@@ -46,48 +61,28 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
   stats,
   activeView,
   onSelectView,
+  mode,
+  secondsLeft,
+  isRunning,
+  onToggleTimer,
+  onResetTimer,
+  onSwitchMode,
+  onOpenZenMode,
+  soundEnabled,
+  onToggleSound,
 }) => {
-  const [mode, setMode] = useState<'focus' | 'break'>('focus');
-  const [secondsLeft, setSecondsLeft] = useState<number>(FOCUS_SECONDS);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
-
   const currentTask =
     activeTodos.find((t) => t.id === focusedTaskId) ?? activeTodos[0] ?? null;
-
-  useEffect(() => {
-    if (!isRunning) return;
-    const interval = window.setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          setIsRunning(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [isRunning]);
-
-  const handleSwitchMode = (nextMode: 'focus' | 'break') => {
-    setIsRunning(false);
-    setMode(nextMode);
-    setSecondsLeft(nextMode === 'focus' ? FOCUS_SECONDS : BREAK_SECONDS);
-  };
-
-  const handleResetTimer = () => {
-    setIsRunning(false);
-    setSecondsLeft(mode === 'focus' ? FOCUS_SECONDS : BREAK_SECONDS);
-  };
 
   return (
     <aside
       aria-label="Focus session timer and project workload"
       className="w-full xl:w-80 shrink-0 space-y-5"
     >
-      {/* Hardware-Inspired Deep Work Timer Module */}
+      {/* Precision Deep Work Timer Module */}
       <section
         aria-labelledby="focus-timer-heading"
-        className="bg-slate-900 text-white rounded-xl p-5 space-y-4 border border-slate-800"
+        className="bg-slate-900 text-white rounded-xl p-5 space-y-4 border border-slate-800 shadow-sm"
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 shrink-0">
@@ -100,61 +95,101 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
             </h2>
           </div>
 
-          <div
-            role="group"
-            aria-label="Timer mode"
-            className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg shrink-0"
-          >
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={() => handleSwitchMode('focus')}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
-                mode === 'focus'
-                  ? 'bg-slate-950 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              onClick={onToggleSound}
+              title={soundEnabled ? 'Mute sound chimes' : 'Enable sound chimes'}
+              aria-label={soundEnabled ? 'Mute sound chimes' : 'Enable sound chimes'}
+              className="p-1.5 text-slate-400 hover:text-white rounded-md transition-colors"
             >
-              25m Focus
+              {soundEnabled ? (
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+              )}
             </button>
-            <button
-              type="button"
-              onClick={() => handleSwitchMode('break')}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
-                mode === 'break'
-                  ? 'bg-slate-950 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+
+            <div
+              role="group"
+              aria-label="Timer mode"
+              className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg shrink-0"
             >
-              5m Break
-            </button>
+              <button
+                type="button"
+                onClick={() => onSwitchMode('focus')}
+                className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
+                  mode === 'focus'
+                    ? 'bg-slate-950 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                25m Focus
+              </button>
+              <button
+                type="button"
+                onClick={() => onSwitchMode('break')}
+                className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
+                  mode === 'break'
+                    ? 'bg-slate-950 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                5m Break
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Segmented Monospace Readout */}
-        <div className="bg-slate-950 border border-slate-800 rounded-xl py-5 px-4 text-center space-y-1">
+        {/* Segmented Monospace Readout & Zen Mode Button */}
+        <div className="bg-slate-950 border border-slate-800 rounded-xl py-4 px-4 text-center space-y-2 relative group">
+          <button
+            type="button"
+            onClick={onOpenZenMode}
+            title="Open distraction-free Zen Mode"
+            className="absolute top-2.5 right-2.5 p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-slate-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-mono"
+          >
+            <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Zen Mode</span>
+          </button>
+
           <div
             aria-live="polite"
             className="text-4xl font-mono font-semibold tracking-wider text-white tabular-nums"
           >
             {formatTimerDisplay(secondsLeft)}
           </div>
-          <p className="text-xs text-slate-400">
-            {mode === 'focus'
-              ? 'Deep work interval'
-              : 'Short restorative break'}
-          </p>
+
+          <div className="flex items-center justify-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'
+              }`}
+            />
+            <p className="text-xs text-slate-400">
+              {mode === 'focus' ? 'Deep work interval' : 'Short restorative break'}
+            </p>
+          </div>
         </div>
 
         {/* Active Focus Task Selector */}
         {currentTask ? (
           <div className="space-y-2 pt-1">
-            <label
-              htmlFor="focus-task-select"
-              className="text-xs text-slate-400 flex items-center gap-1.5"
-            >
-              <Target className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
-              <span>Focused Deliverable</span>
-            </label>
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <label
+                htmlFor="focus-task-select"
+                className="flex items-center gap-1.5"
+              >
+                <Target className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+                <span>Focused Deliverable</span>
+              </label>
+              {currentTask.completedPomodoros ? (
+                <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                  <span>🍅</span>
+                  <span>{currentTask.completedPomodoros}</span>
+                </span>
+              ) : null}
+            </div>
             <select
               id="focus-task-select"
               value={currentTask.id}
@@ -178,8 +213,12 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
         <div className="flex items-center gap-2 pt-1">
           <button
             type="button"
-            onClick={() => setIsRunning((prev) => !prev)}
-            className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+            onClick={onToggleTimer}
+            className={`flex-1 py-2 px-3 text-white text-xs font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
+              isRunning
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                : 'bg-emerald-600 hover:bg-emerald-500'
+            }`}
           >
             {isRunning ? (
               <>
@@ -188,15 +227,16 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
               </>
             ) : (
               <>
-                <Play className="w-3.5 h-3.5" aria-hidden="true" />
+                <Play className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
                 <span>Start Timer</span>
               </>
             )}
           </button>
           <button
             type="button"
-            onClick={handleResetTimer}
+            onClick={onResetTimer}
             aria-label="Reset focus timer"
+            title="Reset timer"
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors shrink-0"
           >
             <RotateCcw className="w-4 h-4" aria-hidden="true" />
