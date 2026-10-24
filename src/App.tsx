@@ -1093,7 +1093,6 @@ export default function App() {
         soundEnabled={timer.soundEnabled}
         onToggleSound={timer.toggleSound}
       />
-      />
     </div>
   );
 }
