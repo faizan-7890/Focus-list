@@ -16,6 +16,7 @@ import {
   type ImportMode,
   type TodoItem,
 } from '../utils/todoLogic';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface PortabilityModalProps {
   isOpen: boolean;
@@ -44,6 +45,9 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
   const [importMode, setImportMode] = useState<ImportMode>('merge');
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+
+  useFocusTrap(modalRef, isOpen);
 
   useEffect(() => {
     if (isOpen) {
@@ -83,8 +87,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
       setCopiedNotice(true);
       window.setTimeout(() => setCopiedNotice(false), 2500);
     } catch {
-      // Fallback if clipboard is restricted
-      setCopiedNotice(true);
+      // Fallback if clipboard is restricted - do not show false success
     }
   };
 
@@ -129,6 +132,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
       aria-labelledby="portability-modal-heading"
     >
       <div
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         className="bg-white border border-stone-200 rounded-xl w-full max-w-2xl p-6 space-y-5 shadow-lg max-h-[90vh] overflow-y-auto"
       >

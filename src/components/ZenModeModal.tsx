@@ -3,24 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Check,
   CheckCircle2,
-  Maximize2,
   Minimize2,
   Pause,
   Play,
   RotateCcw,
-  Sparkles,
   Volume2,
   VolumeX,
-  X,
 } from 'lucide-react';
 import {
   formatTimerDisplay,
   type TodoItem,
 } from '../utils/todoLogic';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface ZenModeModalProps {
   isOpen: boolean;
@@ -55,6 +53,9 @@ export const ZenModeModal: React.FC<ZenModeModalProps> = ({
   soundEnabled,
   onToggleSound,
 }) => {
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(modalRef, isOpen);
+
   // Keyboard shortcuts inside Zen Mode
   useEffect(() => {
     if (!isOpen) return;
@@ -92,6 +93,7 @@ export const ZenModeModal: React.FC<ZenModeModalProps> = ({
 
   return (
     <div
+      ref={modalRef}
       role="dialog"
       aria-modal="true"
       aria-label="Zen Deep Work Mode"
@@ -292,13 +294,14 @@ export const ZenModeModal: React.FC<ZenModeModalProps> = ({
                   {todo.subtasks.map((st) => (
                     <li
                       key={st.id}
-                      onClick={() => onToggleSubtask(todo.id, st.id)}
-                      className="flex items-center gap-2.5 text-xs p-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer transition-colors"
+                      className="flex items-center gap-2.5 text-xs p-1.5 rounded-lg hover:bg-slate-800/60 transition-colors"
                     >
                       <button
                         type="button"
                         role="checkbox"
                         aria-checked={st.completed}
+                        aria-label={`Toggle subtask '${st.title}'`}
+                        onClick={() => onToggleSubtask(todo.id, st.id)}
                         className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
                           st.completed
                             ? 'bg-emerald-500 border-emerald-500 text-slate-950'
@@ -308,7 +311,16 @@ export const ZenModeModal: React.FC<ZenModeModalProps> = ({
                         {st.completed && <Check className="w-3 h-3 stroke-[3]" />}
                       </button>
                       <span
-                        className={`${
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onToggleSubtask(todo.id, st.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onToggleSubtask(todo.id, st.id);
+                          }
+                        }}
+                        className={`cursor-pointer select-none rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400 ${
                           st.completed ? 'line-through text-slate-500' : 'text-slate-200'
                         }`}
                       >

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import type { Category, Priority, TodoItem } from '../utils/todoLogic';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface EditTaskModalProps {
   todo: TodoItem;
@@ -37,7 +38,10 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+
+  useFocusTrap(modalRef, true);
 
   useEffect(() => {
     titleInputRef.current?.focus();
@@ -78,6 +82,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
       aria-labelledby="edit-task-heading"
     >
       <div
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         className="bg-white border border-stone-200 rounded-xl w-full max-w-lg p-6 space-y-5 shadow-lg"
       >

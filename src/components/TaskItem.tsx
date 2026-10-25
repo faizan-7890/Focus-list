@@ -102,8 +102,16 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-2">
               <span
+                role="button"
+                tabIndex={0}
                 onClick={() => onToggle(todo.id)}
-                className={`text-sm sm:text-base font-medium cursor-pointer select-none break-words ${
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle(todo.id);
+                  }
+                }}
+                className={`text-sm sm:text-base font-medium cursor-pointer select-none break-words rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
                   todo.completed
                     ? 'line-through text-slate-400'
                     : 'text-slate-900'
@@ -257,8 +265,16 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                       {st.completed && <Check className="w-3 h-3" aria-hidden="true" />}
                     </button>
                     <span
+                      role="button"
+                      tabIndex={0}
                       onClick={() => onToggleSubtask(todo.id, st.id)}
-                      className={`cursor-pointer truncate ${
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onToggleSubtask(todo.id, st.id);
+                        }
+                      }}
+                      className={`cursor-pointer select-none truncate rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 ${
                         st.completed
                           ? 'line-through text-slate-400'
                           : 'text-slate-700'
