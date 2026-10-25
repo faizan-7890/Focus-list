@@ -18,6 +18,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Undo2,
   Upload,
   X,
 } from 'lucide-react';
@@ -59,6 +60,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { PortabilityModal } from './components/PortabilityModal';
 import { ZenModeModal } from './components/ZenModeModal';
 import { useFocusTimer } from './hooks/useFocusTimer';
+import { useUndoRedo } from './hooks/useUndoRedo';
 import { playTaskCompleteSound } from './utils/soundEffects';
 
 const STORAGE_KEY = 'focuslist_todos_v1';
@@ -161,6 +163,11 @@ export default function App() {
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [isZenModeOpen, setIsZenModeOpen] = useState(false);
 
+  const todosRef = useRef<TodoItem[]>(todos);
+  todosRef.current = todos;
+
+  const undoRedo = useUndoRedo(todosRef);
+
   const timer = useFocusTimer((completedMode) => {
     if (completedMode === 'focus') {
       const targetId = focusedTaskId ?? (todos.find((t) => !t.completed)?.id);
@@ -176,6 +183,7 @@ export default function App() {
     tab: 'export' | 'import';
   }>({ isOpen: false, tab: 'export' });
   const [statusBanner, setStatusBanner] = useState<string | null>(null);
+  const [undoBannerNotice, setUndoBannerNotice] = useState<string | null>(null);
 
   const taskInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -190,20 +198,47 @@ export default function App() {
 
   const showTransientNotice = (msg: string) => {
     setStatusBanner(msg);
+    setUndoBannerNotice(null);
     window.setTimeout(() => {
       setStatusBanner((prev) => (prev === msg ? null : prev));
     }, 3500);
   };
 
-  // Global keyboard shortcuts: Cmd/Ctrl+K opens Command Palette; '/' focuses search; 'n' focuses new task input
+  const showUndoableNotice = (msg: string) => {
+    setStatusBanner(msg);
+    setUndoBannerNotice(msg);
+    window.setTimeout(() => {
+      setStatusBanner((prev) => (prev === msg ? null : prev));
+      setUndoBannerNotice((prev) => (prev === msg ? null : prev));
+    }, 6000);
+  };
+
+  const executeUndo = () => {
+    const result = undoRedo.undo();
+    if (result) {
+      setTodos(result.state);
+      setUndoBannerNotice(null);
+      showTransientNotice(`Undo: ${result.label}`);
+    }
+  };
+
+  const executeRedo = () => {
+    const result = undoRedo.redo();
+    if (result) {
+      setTodos(result.state);
+      setUndoBannerNotice(null);
+      showTransientNotice(`Redo: ${result.label}`);
+    }
+  };
+
+  // Global keyboard shortcuts:
+  // - Cmd/Ctrl + Z -> Undo
+  // - Cmd/Ctrl + Shift + Z or Cmd/Ctrl + Y -> Redo
+  // - Cmd/Ctrl + K -> open Command Palette
+  // - '/' -> focus search
+  // - 'n' -> focus new task input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setIsCommandPaletteOpen((prev) => !prev);
-        return;
-      }
-
       const target = e.target as HTMLElement | null;
       const isInputFocused =
         target &&
@@ -211,6 +246,36 @@ export default function App() {
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
           target.isContentEditable);
+
+      if (
+        !isInputFocused &&
+        !isCommandPaletteOpen &&
+        !portabilityModalState.isOpen &&
+        !editingTodo
+      ) {
+        // Undo: Ctrl/Cmd + Z (without Shift)
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          executeUndo();
+          return;
+        }
+
+        // Redo: Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y
+        if (
+          (e.metaKey || e.ctrlKey) &&
+          ((e.key.toLowerCase() === 'z' && e.shiftKey) || e.key.toLowerCase() === 'y')
+        ) {
+          e.preventDefault();
+          executeRedo();
+          return;
+        }
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
 
       if (
         !isInputFocused &&
@@ -229,7 +294,13 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCommandPaletteOpen, portabilityModalState.isOpen, editingTodo]);
+  }, [
+    isCommandPaletteOpen,
+    portabilityModalState.isOpen,
+    editingTodo,
+    undoRedo.undo,
+    undoRedo.redo,
+  ]);
 
   const stats = useMemo(
     () => computeTodoStats(todos, todayDate),
@@ -268,7 +339,11 @@ export default function App() {
   };
 
   const handleDeleteTodo = (id: string) => {
+    const target = todos.find((t) => t.id === id);
+    const label = target ? `Deleted '${target.title}'` : 'Deleted task';
+    undoRedo.pushUndo(label, todos);
     setTodos((prev) => deleteTodo(prev, id));
+    showUndoableNotice(label);
   };
 
   const handleUpdateTodo = (
@@ -285,20 +360,30 @@ export default function App() {
   };
 
   const handleClearCompleted = () => {
-    setTodos((prev) => clearCompletedTodos(prev));
+    const count = todos.filter((t) => t.completed).length;
+    if (count > 0) {
+      const label = `Cleared ${count} completed ${count === 1 ? 'task' : 'tasks'}`;
+      undoRedo.pushUndo(label, todos);
+      setTodos((prev) => clearCompletedTodos(prev));
+      showUndoableNotice(label);
+    }
   };
 
   const handleToggleAll = () => {
     const allCompleted = todos.length > 0 && todos.every((t) => t.completed);
+    const label = allCompleted ? 'Marked all tasks active' : 'Completed all tasks';
+    undoRedo.pushUndo(label, todos);
     setTodos((prev) => toggleAllTodos(prev, !allCompleted));
+    showUndoableNotice(label);
   };
 
   const handleResetDemo = () => {
+    undoRedo.pushUndo('Restored sample tasks', todos);
     setTodos(getInitialDemoTodos(todayDate));
     setStatusFilter('all');
     setActiveView('all');
     setSearchQuery('');
-    showTransientNotice('Restored sample workspace tasks.');
+    showUndoableNotice('Restored sample workspace tasks.');
   };
 
   const handleMoveOrder = (id: string, direction: 'up' | 'down') => {
@@ -361,12 +446,12 @@ export default function App() {
     importedTodos: TodoItem[],
     mode: ImportMode
   ) => {
+    const label = `Imported ${importedTodos.length} ${
+      importedTodos.length === 1 ? 'task' : 'tasks'
+    } (${mode === 'merge' ? 'merged with workspace' : 'replaced workspace'})`;
+    undoRedo.pushUndo(label, todos);
     setTodos((prev) => applyImportedTodos(prev, importedTodos, mode));
-    showTransientNotice(
-      `Imported ${importedTodos.length} ${
-        importedTodos.length === 1 ? 'task' : 'tasks'
-      } (${mode === 'merge' ? 'merged with workspace' : 'replaced workspace'}).`
-    );
+    showUndoableNotice(label);
   };
 
   const currentHeader = VIEW_TITLES[activeView];
@@ -477,28 +562,43 @@ export default function App() {
           <div className="flex flex-col xl:flex-row items-start gap-6">
             {/* Primary Center Workspace Column */}
             <div className="flex-1 w-full min-w-0 space-y-5">
-              {/* Inline Confirmation Notice */}
+              {/* Inline Confirmation & Undo Notice */}
               {statusBanner && (
                 <div
                   role="status"
                   aria-live="polite"
-                  className="bg-emerald-950 text-emerald-100 border border-emerald-800 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-3"
+                  className="bg-emerald-950 text-emerald-100 border border-emerald-800 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-3 shadow-sm"
                 >
-                  <span className="flex items-center gap-2 font-medium">
+                  <span className="flex items-center gap-2 font-medium min-w-0">
                     <CheckCircle2
                       className="w-4 h-4 text-emerald-400 shrink-0"
                       aria-hidden="true"
                     />
-                    <span>{statusBanner}</span>
+                    <span className="truncate">{statusBanner}</span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setStatusBanner(null)}
-                    aria-label="Dismiss notification"
-                    className="text-emerald-300 hover:text-white p-0.5 rounded"
-                  >
-                    <X className="w-3.5 h-3.5" aria-hidden="true" />
-                  </button>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {undoBannerNotice && undoRedo.canUndo && (
+                      <button
+                        type="button"
+                        onClick={executeUndo}
+                        className="px-2.5 py-1 text-xs font-semibold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-md transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Undo</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusBanner(null);
+                        setUndoBannerNotice(null);
+                      }}
+                      aria-label="Dismiss notification"
+                      className="text-emerald-300 hover:text-white p-0.5 rounded transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
+                  </span>
                 </div>
               )}
 
@@ -843,67 +943,75 @@ export default function App() {
                                     className="p-3 rounded-lg bg-stone-50/80 border border-stone-200/70 space-y-2"
                                   >
                                     <div className="flex items-start justify-between gap-2">
-                                      <div className="flex items-start gap-2 min-w-0">
-                                        <button
-                                          type="button"
-                                          role="checkbox"
-                                          aria-checked={todo.completed}
-                                          aria-label={`Toggle '${todo.title}'`}
-                                          onClick={() =>
-                                            handleToggleTodo(todo.id)
-                                          }
-                                          className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
-                                            todo.completed
-                                              ? 'bg-emerald-600 border-emerald-600 text-white'
-                                              : 'border-slate-300 bg-white hover:border-slate-500'
-                                          }`}
-                                        >
-                                          {todo.completed && (
-                                            <Check
-                                              className="w-3 h-3"
-                                              aria-hidden="true"
-                                            />
-                                          )}
-                                        </button>
-                                        <span
-                                          onClick={() =>
-                                            handleToggleTodo(todo.id)
-                                          }
-                                          className={`text-xs font-medium cursor-pointer break-words ${
-                                            todo.completed
-                                              ? 'line-through text-slate-400'
-                                              : 'text-slate-900'
-                                          }`}
-                                        >
-                                          {todo.title}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                          type="button"
-                                          onClick={() => setEditingTodo(todo)}
-                                          aria-label={`Edit '${todo.title}'`}
-                                          className="p-1 text-slate-400 hover:text-slate-800 rounded"
-                                        >
-                                          <Edit3
-                                            className="w-3.5 h-3.5"
-                                            aria-hidden="true"
-                                          />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleDeleteTodo(todo.id)
-                                          }
-                                          aria-label={`Delete '${todo.title}'`}
-                                          className="p-1 text-slate-400 hover:text-red-600 rounded"
-                                        >
-                                          <Trash2
-                                            className="w-3.5 h-3.5"
-                                            aria-hidden="true"
-                                          />
-                                        </button>
-                                      </div>
+                                       <div className="flex items-start gap-2 min-w-0">
+                                         <button
+                                           type="button"
+                                           role="checkbox"
+                                           aria-checked={todo.completed}
+                                           aria-label={`Toggle '${todo.title}'`}
+                                           onClick={() =>
+                                             handleToggleTodo(todo.id)
+                                           }
+                                           className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
+                                             todo.completed
+                                               ? 'bg-emerald-600 border-emerald-600 text-white'
+                                               : 'border-slate-300 bg-white hover:border-slate-500'
+                                           }`}
+                                         >
+                                           {todo.completed && (
+                                             <Check
+                                               className="w-3 h-3"
+                                               aria-hidden="true"
+                                             />
+                                           )}
+                                         </button>
+                                         <span
+                                           role="button"
+                                           tabIndex={0}
+                                           onClick={() =>
+                                             handleToggleTodo(todo.id)
+                                           }
+                                           onKeyDown={(e) => {
+                                             if (e.key === 'Enter' || e.key === ' ') {
+                                               e.preventDefault();
+                                               handleToggleTodo(todo.id);
+                                             }
+                                           }}
+                                           className={`text-xs font-medium cursor-pointer select-none break-words rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 ${
+                                             todo.completed
+                                               ? 'line-through text-slate-400'
+                                               : 'text-slate-900'
+                                           }`}
+                                         >
+                                           {todo.title}
+                                         </span>
+                                       </div>
+                                       <div className="flex items-center gap-1 shrink-0">
+                                         <button
+                                           type="button"
+                                           onClick={() => setEditingTodo(todo)}
+                                           aria-label={`Edit '${todo.title}'`}
+                                           className="p-1 text-slate-400 hover:text-slate-800 rounded"
+                                         >
+                                           <Edit3
+                                             className="w-3.5 h-3.5"
+                                             aria-hidden="true"
+                                           />
+                                         </button>
+                                         <button
+                                           type="button"
+                                           onClick={() =>
+                                             handleDeleteTodo(todo.id)
+                                           }
+                                           aria-label={`Delete '${todo.title}'`}
+                                           className="p-1 text-slate-400 hover:text-red-600 rounded"
+                                         >
+                                           <Trash2
+                                             className="w-3.5 h-3.5"
+                                             aria-hidden="true"
+                                           />
+                                         </button>
+                                       </div>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 pl-6">
                                       <span className="font-medium text-slate-700">
@@ -1059,6 +1167,10 @@ export default function App() {
         onOpenImportModal={() =>
           setPortabilityModalState({ isOpen: true, tab: 'import' })
         }
+        onUndo={executeUndo}
+        onRedo={executeRedo}
+        canUndo={undoRedo.canUndo}
+        canRedo={undoRedo.canRedo}
       />
 
       {/* JSON & CSV Import / Export Portability Modal */}

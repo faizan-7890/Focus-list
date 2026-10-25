@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import type { StatusFilter, TodoItem, ViewFilter } from '../utils/todoLogic';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export interface CommandPaletteProps {
   isOpen: boolean;
@@ -32,6 +33,10 @@ export interface CommandPaletteProps {
   onExportJson: () => void;
   onExportCsv: () => void;
   onOpenImportModal: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 interface CommandItem {
@@ -60,10 +65,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onExportJson,
   onExportCsv,
   onOpenImportModal,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+
+  useFocusTrap(modalRef, isOpen);
 
   useEffect(() => {
     if (isOpen) {
@@ -89,6 +102,39 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           onFocusNewTask();
         },
       },
+    ];
+
+    if (canUndo && onUndo) {
+      base.push({
+        id: 'cmd-undo',
+        label: 'Undo Last Action',
+        group: 'Quick Actions',
+        keywords: 'undo revert back previous restore cancel',
+        shortcut: '⌘Z',
+        icon: <RotateCcw className="w-4 h-4 text-amber-600" aria-hidden="true" />,
+        onSelect: () => {
+          onClose();
+          onUndo();
+        },
+      });
+    }
+
+    if (canRedo && onRedo) {
+      base.push({
+        id: 'cmd-redo',
+        label: 'Redo Last Action',
+        group: 'Quick Actions',
+        keywords: 'redo forward repeat again',
+        shortcut: '⌘⇧Z',
+        icon: <RotateCcw className="w-4 h-4 text-emerald-600 -scale-x-100 transform" aria-hidden="true" />,
+        onSelect: () => {
+          onClose();
+          onRedo();
+        },
+      });
+    }
+
+    base.push(
       {
         id: 'cmd-layout-list',
         label: 'Switch to List View',
@@ -277,8 +323,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           onResetDemo();
           onClose();
         },
-      },
-    ];
+      }
+    );
 
     const taskCommands: CommandItem[] = todos.slice(0, 8).map((todo) => ({
       id: `cmd-task-${todo.id}`,
@@ -302,6 +348,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return [...base, ...taskCommands];
   }, [
     todos,
+    canUndo,
+    canRedo,
+    onUndo,
+    onRedo,
     onClose,
     onFocusNewTask,
     onSelectLayout,
@@ -330,6 +380,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
+
+  // Ensure selected command is scrolled into view when navigating with keyboard
+  useEffect(() => {
+    if (!listRef.current) return;
+    const selectedItem = listRef.current.children[selectedIndex] as HTMLElement | undefined;
+    if (selectedItem && typeof selectedItem.scrollIntoView === 'function') {
+      selectedItem.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selectedIndex]);
 
   if (!isOpen) return null;
 
@@ -372,6 +431,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       aria-labelledby="command-palette-heading"
     >
       <div
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
         className="bg-white border border-stone-200 rounded-xl w-full max-w-xl shadow-lg overflow-hidden"
@@ -411,7 +471,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         {/* Command Results List */}
         <div className="max-h-80 overflow-y-auto p-2 space-y-1">
           {filteredCommands.length > 0 ? (
-            <ul role="listbox" aria-label="Available commands">
+            <ul ref={listRef} role="listbox" aria-label="Available commands">
               {filteredCommands.map((cmd, idx) => {
                 const isSelected = idx === selectedIndex;
                 return (
