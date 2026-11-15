@@ -387,7 +387,8 @@ export default function App() {
   };
 
   const handleMoveOrder = (id: string, direction: 'up' | 'down') => {
-    setTodos((prev) => moveTodoOrder(prev, id, direction));
+    const visibleIds = visibleTodos.map((t) => t.id);
+    setTodos((prev) => moveTodoOrder(prev, id, direction, visibleIds));
   };
 
   const handleAddSubtask = (todoId: string, title: string) => {

@@ -210,22 +210,38 @@ export function deleteSubtask(
   });
 }
 
+/**
+ * Swaps a task's manual order with its neighbour. When `visibleIds` is given
+ * (the ids currently on screen under the active filters), the neighbour is the
+ * adjacent *visible* task, so the arrows always move the row the user sees.
+ */
 export function moveTodoOrder(
   todos: TodoItem[],
   id: string,
-  direction: 'up' | 'down'
+  direction: 'up' | 'down',
+  visibleIds?: string[]
 ): TodoItem[] {
   const sorted = [...todos].sort((a, b) => a.order - b.order);
-  const index = sorted.findIndex((t) => t.id === id);
+  const visibleSet = visibleIds ? new Set(visibleIds) : null;
+  const candidates = visibleSet
+    ? sorted.filter((t) => visibleSet.has(t.id))
+    : sorted;
+
+  const index = candidates.findIndex((t) => t.id === id);
   if (index === -1) return todos;
   const targetIndex = direction === 'up' ? index - 1 : index + 1;
-  if (targetIndex < 0 || targetIndex >= sorted.length) return todos;
+  if (targetIndex < 0 || targetIndex >= candidates.length) return todos;
 
-  const tempOrder = sorted[index].order;
-  sorted[index] = { ...sorted[index], order: sorted[targetIndex].order };
-  sorted[targetIndex] = { ...sorted[targetIndex], order: tempOrder };
+  const current = candidates[index];
+  const neighbour = candidates[targetIndex];
 
-  return sorted.sort((a, b) => a.order - b.order);
+  return sorted
+    .map((t) => {
+      if (t.id === current.id) return { ...t, order: neighbour.order };
+      if (t.id === neighbour.id) return { ...t, order: current.order };
+      return t;
+    })
+    .sort((a, b) => a.order - b.order);
 }
 
 export function filterAndSortTodos(
