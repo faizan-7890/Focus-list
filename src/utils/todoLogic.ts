@@ -544,6 +544,7 @@ export function exportTodosToCsv(todos: TodoItem[]): string {
     'Due Date',
     'Notes',
     'Subtasks',
+    'Pomodoros',
   ];
   const rows = todos.map((todo) => [
     escapeCsvCell(todo.title),
@@ -553,6 +554,7 @@ export function exportTodosToCsv(todos: TodoItem[]): string {
     escapeCsvCell(todo.dueDate),
     escapeCsvCell(todo.notes),
     escapeCsvCell(serializeSubtasksForCsv(todo.subtasks)),
+    escapeCsvCell(String(todo.completedPomodoros ?? 0)),
   ]);
   return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
 }
@@ -627,6 +629,11 @@ function normalizeDueDate(raw: unknown): string {
     return str;
   }
   return '';
+}
+
+function normalizePomodoros(raw: unknown): number {
+  const num = typeof raw === 'number' ? raw : Number(String(raw ?? '').trim());
+  return Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
 }
 
 export function parseImportedTasks(
@@ -713,6 +720,7 @@ export function parseImportedTasks(
             typeof obj.createdAt === 'number' ? obj.createdAt : now + idx,
           order: typeof obj.order === 'number' ? obj.order : idx + 1,
           subtasks,
+          completedPomodoros: normalizePomodoros(obj.completedPomodoros),
         });
       });
 
@@ -784,6 +792,11 @@ export function parseImportedTasks(
     subtasks: hasHeader
       ? firstRowLower.findIndex((h) => h === 'subtasks' || h === 'steps')
       : 6,
+    pomodoros: hasHeader
+      ? firstRowLower.findIndex(
+          (h) => h === 'pomodoros' || h === 'completedpomodoros'
+        )
+      : 7,
   };
 
   const dataRows = hasHeader ? rows.slice(1) : rows;
@@ -842,6 +855,10 @@ export function parseImportedTasks(
       createdAt: now + idx,
       order: idx + 1,
       subtasks,
+      completedPomodoros:
+        colIndex.pomodoros >= 0
+          ? normalizePomodoros(row[colIndex.pomodoros])
+          : 0,
     });
   });
 
