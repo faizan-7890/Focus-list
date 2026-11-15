@@ -24,7 +24,7 @@
   - **Project Filters**: Isolate deliverables by *Work*, *Personal*, *Errands*, or *Study*.
   - **Status & Search Controls**: Filter by *All*, *Active*, or *Completed*, search across titles/notes/subtasks in real time, and sort by *Manual Order*, *Priority (High–Low)*, *Due Date (Soonest)*, or *Alphabetical (A–Z)*.
 - **Dual Layout Modes (List & Priority Board)**: Switch seamlessly between a compact single-column **List View** and a 3-column **Priority Kanban Board** (*High*, *Medium*, *Low Priority*).
-- **Calendar View**: A third layout that shows one month as a Monday-to-Sunday grid with each task on its due date. Step between months, jump back to today, and click any task to edit it. The calendar respects the active view, status, and search filters.
+- **Calendar View**: A third layout that shows one month as a Monday-to-Sunday grid with each task on its due date. Step between months, jump back to today, click the `+` on any day to add a task due that day, and click any task to edit it. The calendar respects the active view, status, and search filters.
 - **Precision Focus Timer, Pomodoro Tracking & Fullscreen Zen Mode**:
   - **Persistent Countdown**: Timestamp-backed `25m Focus` and `5m Break` intervals that survive page reloads and update the browser tab title live.
   - **Pomodoro Counter (`🍅`)**: Automatically increments the completed focus session count on the active deliverable whenever a 25-minute focus interval finishes.

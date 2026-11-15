@@ -162,6 +162,8 @@ export default function App() {
   const [sortBy, setSortBy] = useState<SortBy>('manual');
   const [layoutMode, setLayoutMode] = useState<'list' | 'board' | 'calendar'>('list');
   const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
+  // Set to a YYYY-MM-DD date while the "new task" dialog is open from the calendar
+  const [newTaskDate, setNewTaskDate] = useState<string | null>(null);
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [isZenModeOpen, setIsZenModeOpen] = useState(false);
 
@@ -253,7 +255,8 @@ export default function App() {
         !isInputFocused &&
         !isCommandPaletteOpen &&
         !portabilityModalState.isOpen &&
-        !editingTodo
+        !editingTodo &&
+        !newTaskDate
       ) {
         // Undo: Ctrl/Cmd + Z (without Shift)
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
@@ -283,7 +286,8 @@ export default function App() {
         !isInputFocused &&
         !isCommandPaletteOpen &&
         !portabilityModalState.isOpen &&
-        !editingTodo
+        !editingTodo &&
+        !newTaskDate
       ) {
         if (e.key === '/') {
           e.preventDefault();
@@ -300,6 +304,7 @@ export default function App() {
     isCommandPaletteOpen,
     portabilityModalState.isOpen,
     editingTodo,
+    newTaskDate,
     undoRedo.undo,
     undoRedo.redo,
   ]);
@@ -893,14 +898,15 @@ export default function App() {
               </div>
 
               {/* Task List View vs Priority Board View */}
-              {visibleTodos.length > 0 ? (
-                layoutMode === 'calendar' ? (
-                  <CalendarView
-                    todos={visibleTodos}
-                    todayDate={todayDate}
-                    onEditTodo={setEditingTodo}
-                  />
-                ) : layoutMode === 'list' ? (
+              {layoutMode === 'calendar' ? (
+                <CalendarView
+                  todos={visibleTodos}
+                  todayDate={todayDate}
+                  onEditTodo={setEditingTodo}
+                  onAddTodoOnDate={setNewTaskDate}
+                />
+              ) : visibleTodos.length > 0 ? (
+                layoutMode === 'list' ? (
                   <div className="bg-white border border-stone-200/90 rounded-xl overflow-hidden">
                     <ul
                       aria-label="Task list"
@@ -1159,6 +1165,28 @@ export default function App() {
           todo={editingTodo}
           onClose={() => setEditingTodo(null)}
           onSave={handleUpdateTodo}
+        />
+      )}
+
+      {/* New Task Modal, opened from a calendar day */}
+      {newTaskDate && (
+        <EditTaskModal
+          heading="New Task"
+          submitLabel="Add Task"
+          todo={{
+            id: '',
+            title: '',
+            notes: '',
+            completed: false,
+            priority: 'medium',
+            category: defaultCategoryForNewTask,
+            dueDate: newTaskDate,
+            createdAt: 0,
+            order: 0,
+            subtasks: [],
+          }}
+          onClose={() => setNewTaskDate(null)}
+          onSave={(_id, values) => handleAddTodo(values)}
         />
       )}
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { TodoItem } from '../utils/todoLogic';
 import {
   WEEKDAY_LABELS,
@@ -16,6 +16,7 @@ interface CalendarViewProps {
   todos: TodoItem[];
   todayDate: string;
   onEditTodo: (todo: TodoItem) => void;
+  onAddTodoOnDate: (isoDate: string) => void;
 }
 
 /** How many tasks a day shows before collapsing the rest behind "+N more". */
@@ -48,6 +49,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   todos,
   todayDate,
   onEditTodo,
+  onAddTodoOnDate,
 }) => {
   const [visibleMonth, setVisibleMonth] = useState<CalendarMonth>(() =>
     getMonthOfIsoDate(todayDate)
@@ -139,7 +141,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 inMonth ? 'bg-white' : 'bg-stone-50/70'
               }`}
             >
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => onAddTodoOnDate(date)}
+                  aria-label={`Add task on ${formatFullDate(date)}`}
+                  title="Add task on this day"
+                  className="inline-flex items-center justify-center w-5 h-5 rounded text-slate-400 hover:text-slate-900 hover:bg-stone-200 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900"
+                >
+                  <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
                 <span
                   aria-label={formatFullDate(date)}
                   aria-current={isToday ? 'date' : undefined}

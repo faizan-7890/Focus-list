@@ -16,6 +16,9 @@ interface EditTaskModalProps {
       dueDate: string;
     }
   ) => void;
+  /** Override the dialog title and submit label, e.g. when creating a task. */
+  heading?: string;
+  submitLabel?: string;
 }
 
 const CATEGORIES: Category[] = ['Work', 'Personal', 'Errands', 'Study'];
@@ -29,6 +32,8 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
   todo,
   onClose,
   onSave,
+  heading = 'Edit Task Details',
+  submitLabel = 'Save Changes',
 }) => {
   const [title, setTitle] = useState(todo.title);
   const [notes, setNotes] = useState(todo.notes);
@@ -91,12 +96,12 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
             id="edit-task-heading"
             className="text-base font-semibold text-slate-900 font-display"
           >
-            Edit Task Details
+            {heading}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close edit task modal"
+            aria-label="Close task dialog"
             className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-stone-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           >
             <X className="w-4 h-4" aria-hidden="true" />
@@ -226,7 +231,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
               disabled={isSaving}
               className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
             >
-              Save Changes
+              {submitLabel}
             </button>
           </div>
         </form>
