@@ -7,19 +7,17 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { formatTimerDisplay } from '../utils/todoLogic';
 import { playTimerCompleteSound, playTimerStartSound } from '../utils/soundEffects';
 
-export type TimerMode = 'focus' | 'break';
+import {
+  BREAK_DURATION,
+  FOCUS_DURATION,
+  restoreTimerState,
+  type PersistedTimerState,
+  type TimerMode,
+} from '../utils/timerState';
+
+export { BREAK_DURATION, FOCUS_DURATION, type TimerMode };
 
 const TIMER_STORAGE_KEY = 'focuslist_timer_state_v1';
-export const FOCUS_DURATION = 25 * 60;
-export const BREAK_DURATION = 5 * 60;
-
-interface PersistedTimerState {
-  mode: TimerMode;
-  isRunning: boolean;
-  targetTimestamp: number | null;
-  pausedSecondsLeft: number;
-  soundEnabled: boolean;
-}
 
 export function useFocusTimer(onFocusComplete?: (mode: TimerMode) => void) {
   const onFocusCompleteRef = useRef(onFocusComplete);
@@ -33,16 +31,7 @@ export function useFocusTimer(onFocusComplete?: (mode: TimerMode) => void) {
       const saved = window.localStorage.getItem(TIMER_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as PersistedTimerState;
-        if (parsed.targetTimestamp && parsed.isRunning) {
-          const delta = Math.max(0, Math.round((parsed.targetTimestamp - Date.now()) / 1000));
-          return {
-            ...parsed,
-            pausedSecondsLeft: delta,
-            isRunning: delta > 0,
-            targetTimestamp: delta > 0 ? parsed.targetTimestamp : null,
-          };
-        }
-        return parsed;
+        return restoreTimerState(parsed, Date.now());
       }
     } catch {
       // Fallback to default

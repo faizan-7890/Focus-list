@@ -210,22 +210,38 @@ export function deleteSubtask(
   });
 }
 
+/**
+ * Swaps a task's manual order with its neighbour. When `visibleIds` is given
+ * (the ids currently on screen under the active filters), the neighbour is the
+ * adjacent *visible* task, so the arrows always move the row the user sees.
+ */
 export function moveTodoOrder(
   todos: TodoItem[],
   id: string,
-  direction: 'up' | 'down'
+  direction: 'up' | 'down',
+  visibleIds?: string[]
 ): TodoItem[] {
   const sorted = [...todos].sort((a, b) => a.order - b.order);
-  const index = sorted.findIndex((t) => t.id === id);
+  const visibleSet = visibleIds ? new Set(visibleIds) : null;
+  const candidates = visibleSet
+    ? sorted.filter((t) => visibleSet.has(t.id))
+    : sorted;
+
+  const index = candidates.findIndex((t) => t.id === id);
   if (index === -1) return todos;
   const targetIndex = direction === 'up' ? index - 1 : index + 1;
-  if (targetIndex < 0 || targetIndex >= sorted.length) return todos;
+  if (targetIndex < 0 || targetIndex >= candidates.length) return todos;
 
-  const tempOrder = sorted[index].order;
-  sorted[index] = { ...sorted[index], order: sorted[targetIndex].order };
-  sorted[targetIndex] = { ...sorted[targetIndex], order: tempOrder };
+  const current = candidates[index];
+  const neighbour = candidates[targetIndex];
 
-  return sorted.sort((a, b) => a.order - b.order);
+  return sorted
+    .map((t) => {
+      if (t.id === current.id) return { ...t, order: neighbour.order };
+      if (t.id === neighbour.id) return { ...t, order: current.order };
+      return t;
+    })
+    .sort((a, b) => a.order - b.order);
 }
 
 export function filterAndSortTodos(
@@ -544,6 +560,7 @@ export function exportTodosToCsv(todos: TodoItem[]): string {
     'Due Date',
     'Notes',
     'Subtasks',
+    'Pomodoros',
   ];
   const rows = todos.map((todo) => [
     escapeCsvCell(todo.title),
@@ -553,6 +570,7 @@ export function exportTodosToCsv(todos: TodoItem[]): string {
     escapeCsvCell(todo.dueDate),
     escapeCsvCell(todo.notes),
     escapeCsvCell(serializeSubtasksForCsv(todo.subtasks)),
+    escapeCsvCell(String(todo.completedPomodoros ?? 0)),
   ]);
   return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
 }
@@ -627,6 +645,11 @@ function normalizeDueDate(raw: unknown): string {
     return str;
   }
   return '';
+}
+
+function normalizePomodoros(raw: unknown): number {
+  const num = typeof raw === 'number' ? raw : Number(String(raw ?? '').trim());
+  return Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
 }
 
 export function parseImportedTasks(
@@ -713,6 +736,7 @@ export function parseImportedTasks(
             typeof obj.createdAt === 'number' ? obj.createdAt : now + idx,
           order: typeof obj.order === 'number' ? obj.order : idx + 1,
           subtasks,
+          completedPomodoros: normalizePomodoros(obj.completedPomodoros),
         });
       });
 
@@ -784,6 +808,11 @@ export function parseImportedTasks(
     subtasks: hasHeader
       ? firstRowLower.findIndex((h) => h === 'subtasks' || h === 'steps')
       : 6,
+    pomodoros: hasHeader
+      ? firstRowLower.findIndex(
+          (h) => h === 'pomodoros' || h === 'completedpomodoros'
+        )
+      : 7,
   };
 
   const dataRows = hasHeader ? rows.slice(1) : rows;
@@ -842,6 +871,10 @@ export function parseImportedTasks(
       createdAt: now + idx,
       order: idx + 1,
       subtasks,
+      completedPomodoros:
+        colIndex.pomodoros >= 0
+          ? normalizePomodoros(row[colIndex.pomodoros])
+          : 0,
     });
   });
 

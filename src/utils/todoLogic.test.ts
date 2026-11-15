@@ -313,3 +313,45 @@ test('JSON and CSV export and import round-trip tasks, subtasks, and handle merg
   assert.equal(parsedWithError.errors.length, 1);
   assert.ok(parsedWithError.errors[0].includes('Row 2'));
 });
+
+test('JSON and CSV import/export preserve the completed Pomodoro count', () => {
+  let list = createTodo([], { title: 'Write report' });
+  const id = list[0].id;
+  list = incrementPomodoro(list, id);
+  list = incrementPomodoro(list, id);
+  list = incrementPomodoro(list, id);
+
+  const fromJson = parseImportedTasks(exportTodosToJson(list), 'json');
+  assert.equal(fromJson.validTodos[0].completedPomodoros, 3);
+
+  const csvStr = exportTodosToCsv(list);
+  assert.ok(csvStr.split('\n')[0].endsWith('Pomodoros'));
+  const fromCsv = parseImportedTasks(csvStr, 'csv');
+  assert.equal(fromCsv.validTodos[0].completedPomodoros, 3);
+
+  // Missing or junk values fall back to 0 instead of NaN/undefined
+  const legacyJson = parseImportedTasks('[{"title":"Old task"}]', 'json');
+  assert.equal(legacyJson.validTodos[0].completedPomodoros, 0);
+  const junkCsv = parseImportedTasks('Title,Pomodoros\nTask A,abc', 'csv');
+  assert.equal(junkCsv.validTodos[0].completedPomodoros, 0);
+});
+
+test('moveTodoOrder moves relative to the visible list when a filter hides tasks', () => {
+  let list = createTodo([], { title: 'Work C', category: 'Work' });
+  list = createTodo(list, { title: 'Personal B', category: 'Personal' });
+  list = createTodo(list, { title: 'Work A', category: 'Work' });
+  // Manual order is now: Work A, Personal B, Work C
+  const workIds = list.filter((t) => t.category === 'Work').map((t) => t.id);
+  const workC = list.find((t) => t.title === 'Work C')!;
+
+  const moved = moveTodoOrder(list, workC.id, 'up', workIds);
+  const visibleTitles = moved
+    .filter((t) => t.category === 'Work')
+    .map((t) => t.title);
+  assert.deepEqual(visibleTitles, ['Work C', 'Work A']);
+  assert.equal(moved.length, 3);
+
+  // Already first among visible tasks: nothing to swap with
+  const unchanged = moveTodoOrder(moved, workC.id, 'up', workIds);
+  assert.equal(unchanged, moved);
+});

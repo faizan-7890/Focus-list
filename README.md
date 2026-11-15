@@ -141,7 +141,7 @@ npm run dev
 
 ### Running Unit Tests
 ```bash
-npx --yes tsx --test src/utils/todoLogic.test.ts
+npm test
 ```
 
 ### Building for Production
