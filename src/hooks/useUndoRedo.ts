@@ -21,7 +21,9 @@ export interface UseUndoRedoReturn {
 export function useUndoRedo(
   currentStateRef: React.RefObject<TodoItem[]>
 ): UseUndoRedoReturn {
-  const [, setRevision] = useState(0);
+  // Bumped on every history change so the memoized return value below
+  // recomputes canUndo/canRedo (the manager itself is a stable ref).
+  const [revision, setRevision] = useState(0);
   const managerRef = useRef<UndoRedoManager<TodoItem[]> | null>(null);
 
   if (!managerRef.current) {
@@ -71,6 +73,6 @@ export function useUndoRedo(
       lastUndoLabel: manager.getLastUndoLabel(),
       clearHistory,
     }),
-    [pushUndo, undo, redo, clearHistory, manager]
+    [pushUndo, undo, redo, clearHistory, manager, revision]
   );
 }
