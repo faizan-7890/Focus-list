@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  CalendarDays,
   CheckCircle2,
   CornerDownLeft,
   Download,
@@ -23,7 +24,7 @@ export interface CommandPaletteProps {
   todos: TodoItem[];
   onSelectView: (view: ViewFilter) => void;
   onSelectStatus: (status: StatusFilter) => void;
-  onSelectLayout: (layout: 'list' | 'board') => void;
+  onSelectLayout: (layout: 'list' | 'board' | 'calendar') => void;
   onFocusNewTask: () => void;
   onQuickCreateTask: (title: string) => void;
   onToggleTodo: (id: string) => void;
@@ -156,6 +157,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: <Kanban className="w-4 h-4 text-slate-600" aria-hidden="true" />,
         onSelect: () => {
           onSelectLayout('board');
+          onClose();
+        },
+      },
+      {
+        id: 'cmd-layout-calendar',
+        label: 'Switch to Calendar View',
+        group: 'Navigation & Views',
+        keywords: 'view calendar month dates due schedule',
+        icon: (
+          <CalendarDays className="w-4 h-4 text-slate-600" aria-hidden="true" />
+        ),
+        onSelect: () => {
+          onSelectLayout('calendar');
           onClose();
         },
       },

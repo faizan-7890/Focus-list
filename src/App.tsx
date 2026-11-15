@@ -5,6 +5,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  CalendarDays,
   Check,
   CheckCheck,
   CheckCircle2,
@@ -59,6 +60,7 @@ import { FocusPanel } from './components/FocusPanel';
 import { CommandPalette } from './components/CommandPalette';
 import { PortabilityModal } from './components/PortabilityModal';
 import { ZenModeModal } from './components/ZenModeModal';
+import { CalendarView } from './components/CalendarView';
 import { useFocusTimer } from './hooks/useFocusTimer';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { playTaskCompleteSound } from './utils/soundEffects';
@@ -158,7 +160,7 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('manual');
-  const [layoutMode, setLayoutMode] = useState<'list' | 'board'>('list');
+  const [layoutMode, setLayoutMode] = useState<'list' | 'board' | 'calendar'>('list');
   const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [isZenModeOpen, setIsZenModeOpen] = useState(false);
@@ -776,6 +778,18 @@ export default function App() {
                         <Kanban className="w-3.5 h-3.5" aria-hidden="true" />
                         <span>Board</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setLayoutMode('calendar')}
+                        className={`px-2.5 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                          layoutMode === 'calendar'
+                            ? 'bg-white text-slate-900 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Calendar</span>
+                      </button>
                     </div>
                   </div>
 
@@ -880,7 +894,13 @@ export default function App() {
 
               {/* Task List View vs Priority Board View */}
               {visibleTodos.length > 0 ? (
-                layoutMode === 'list' ? (
+                layoutMode === 'calendar' ? (
+                  <CalendarView
+                    todos={visibleTodos}
+                    todayDate={todayDate}
+                    onEditTodo={setEditingTodo}
+                  />
+                ) : layoutMode === 'list' ? (
                   <div className="bg-white border border-stone-200/90 rounded-xl overflow-hidden">
                     <ul
                       aria-label="Task list"
