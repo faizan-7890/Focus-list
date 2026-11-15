@@ -329,13 +329,13 @@ export default function App() {
   };
 
   const handleToggleTodo = (id: string) => {
-    setTodos((prev) => {
-      const target = prev.find((t) => t.id === id);
-      if (target && !target.completed && timer.soundEnabled) {
-        playTaskCompleteSound();
-      }
-      return toggleTodo(prev, id);
-    });
+    // Side effects belong in the event handler: React may call state updater
+    // functions twice (StrictMode), which used to play the chime twice.
+    const target = todosRef.current.find((t) => t.id === id);
+    if (target && !target.completed && timer.soundEnabled) {
+      playTaskCompleteSound();
+    }
+    setTodos((prev) => toggleTodo(prev, id));
   };
 
   const handleDeleteTodo = (id: string) => {
