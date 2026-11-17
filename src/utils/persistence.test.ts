@@ -6,7 +6,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  LEGACY_STORAGE_KEY,
   SCHEMA_VERSION,
+  STORAGE_KEY,
+  loadTodos,
   migrateTodos,
   parsePersistedState,
   sanitizeTodo,
@@ -134,4 +137,60 @@ test('migrateTodos is a no-op when already current', () => {
   const todos = [baseTodo({ completedPomodoros: 5 })];
   const migrated = migrateTodos(todos, SCHEMA_VERSION);
   assert.equal(migrated[0].completedPomodoros, 5);
+});
+
+// --- loadTodos, exercised against an in-memory storage -----------------------
+
+function memoryStorage(initial: Record<string, string> = {}) {
+  const data = new Map(Object.entries(initial));
+  return {
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => void data.set(k, v),
+    removeItem: (k: string) => void data.delete(k),
+  };
+}
+
+const seed = () => [baseTodo({ id: 'seed', title: 'Demo seed' })];
+
+test('loadTodos keeps an intentionally empty workspace empty (no demo reseed)', () => {
+  const storage = memoryStorage({
+    [STORAGE_KEY]: JSON.stringify({ version: SCHEMA_VERSION, todos: [] }),
+  });
+  const result = loadTodos(seed, storage);
+  assert.deepEqual(result.todos, []);
+  assert.equal(result.source, 'current');
+});
+
+test('loadTodos seeds the demo tasks when nothing is stored', () => {
+  const result = loadTodos(seed, memoryStorage());
+  assert.equal(result.todos[0].title, 'Demo seed');
+  assert.equal(result.source, 'fallback');
+  assert.equal(result.recoveredFromError, false);
+});
+
+test('loadTodos migrates the legacy bare-array key', () => {
+  const storage = memoryStorage({
+    [LEGACY_STORAGE_KEY]: JSON.stringify([baseTodo({ title: 'From v1' })]),
+  });
+  const result = loadTodos(seed, storage);
+  assert.equal(result.todos[0].title, 'From v1');
+  assert.equal(result.source, 'migrated-legacy');
+});
+
+test('loadTodos flags corrupt JSON and falls back instead of throwing', () => {
+  const result = loadTodos(seed, memoryStorage({ [STORAGE_KEY]: '{oops' }));
+  assert.equal(result.source, 'fallback');
+  assert.equal(result.recoveredFromError, true);
+});
+
+test('loadTodos does not treat a list of only-invalid tasks as an empty workspace', () => {
+  const storage = memoryStorage({
+    [STORAGE_KEY]: JSON.stringify({
+      version: SCHEMA_VERSION,
+      todos: [{ title: '' }, null],
+    }),
+  });
+  const result = loadTodos(seed, storage);
+  assert.equal(result.source, 'fallback');
+  assert.equal(result.recoveredFromError, true);
 });
