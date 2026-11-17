@@ -14,44 +14,51 @@ sitting, on a branch, and look at it in both light and dark mode before moving o
 
 ## Tier 1 — Quick wins (polish that users feel immediately)
 
-- [ ] **Toasts shouldn't shove the page down.** `⭐⭐ / ⚡`
+- [x] **Toasts shouldn't shove the page down.** `⭐⭐ / ⚡`
+  **Done:** floating bottom-center toast over an always-mounted `aria-live` region; verified the task list does not move when a toast appears.
   The confirmation/undo banner renders *inline* at the top of the task column
   (`src/App.tsx`), so every action nudges the whole list vertically. Move it to a fixed,
   bottom-center (or top-right) overlay that floats above content and animates in/out.
   *Why:* layout shift on every toggle/delete is disorienting and makes the Undo target
   jump.
 
-- [ ] **Bigger, consistent touch/click targets on row actions.** `⭐⭐ / ⚡`
+- [x] **Bigger, consistent touch/click targets on row actions.** `⭐⭐ / ⚡`
+  **Done:** shared `.icon-btn` (36px, 40px on touch) on list rows, calendar nav, board cards, modal closes and the toast; `.hit-area` invisibly extends tiny controls. On phones the row actions drop to their own line so titles keep full width.
   Edit / delete / reorder / subtask-toggle buttons are `p-1`–`p-1.5` around a
   `w-3.5 h-3.5` icon — well under the ~40px comfortable tap size, and they sit close
   together (`TaskItem.tsx`, `CalendarView.tsx`). Pad to a ≥36–40px hit area (keep the
   icon size) and add a hover/focus background so the target is visible before the click.
   *Why:* fat-finger misses on mobile; low discoverability on desktop.
 
-- [ ] **Don't encode priority by color alone.** `⭐⭐ / ⚡`
+- [x] **Don't encode priority by color alone.** `⭐⭐ / ⚡`
+  **Done:** *Correction:* list rows already showed a text label, so the real gaps were elsewhere. High priority now uses a filled flag, and calendar chips (where color was the only signal) get an overdue/high icon plus an `aria-label` suffix.
   Priority shows as a colored flag + colored text (red/amber/slate). For color-blind
   users and in dense board columns this is ambiguous. Keep the color but add a short
   text/shape token (e.g. a filled vs. outline flag, or `P1/P2/P3`). *Why:* WCAG 1.4.1
   (use of color) + faster scanning.
 
-- [ ] **More due-date presets + a quick "clear".** `⭐⭐ / ⚡`
+- [x] **More due-date presets + a quick "clear".** `⭐⭐ / ⚡`
+  **Done:** added *Weekend* and *Next week* (pure, tested functions; de-duplicated against Today/Tomorrow; the real date is the tooltip). *Correction:* a "No Date" clear button already existed.
   `TaskInput` offers only *Today* and *Tomorrow* plus a raw date field. Add *This
   weekend*, *Next week*, and a one-click *No date / Clear*. *Why:* the raw
   `mm/dd/yyyy` input is the slowest part of capture, which is where this app should feel
   fastest.
 
-- [ ] **Show the keyboard shortcuts in-app.** `⭐⭐ / ⚡`
+- [x] **Show the keyboard shortcuts in-app.** `⭐⭐ / ⚡`
+  **Done:** `?` opens a cheatsheet dialog; also a header button and a command-palette entry. Not done: hover `kbd` hint chips.
   Shortcuts exist (`N`, `/`, `Ctrl+K`, Zen `Space/R/M/Esc`) but are only in the README.
   Add a `?` shortcut that opens a small shortcuts cheatsheet modal, and surface hints as
   `kbd` chips on hover. *Why:* the app's whole value prop is keyboard speed — make it
   discoverable.
 
-- [ ] **Focus-visible rings everywhere interactive.** `⭐⭐ / ⚡`
+- [x] **Focus-visible rings everywhere interactive.** `⭐⭐ / ⚡`
+  **Done:** one global `:focus-visible` rule (indigo, readable on light, dark and the always-dark cards) replaced the per-element utilities; the borderless title field gets a focus-within ring.
   Some controls have `focus-visible:outline` (sidebar, board title), many don't (icon
   buttons, segmented toggles, selects). Standardize one focus-ring utility across all
   buttons/inputs. *Why:* keyboard users currently lose track of focus; also WCAG 2.4.7.
 
-- [ ] **Empty-state for the timer / "no focused task".** `⭐ / ⚡`
+- [x] **Empty-state for the timer / "no focused task".** `⭐ / ⚡`
+  **Done:** *Correction:* an empty state existed but said "All tasks completed" even with zero tasks. It now distinguishes the two cases and offers an "Add a task" button.
   When there are no active tasks, the Focus panel still shows a dropdown. Add a gentle
   "Add a task to start a focus session" state. *Why:* removes a dead-end control.
 
@@ -141,6 +148,17 @@ sitting, on a branch, and look at it in both light and dark mode before moving o
   view each morning is a small, constant delight.
 
 ---
+
+## Tier 1 follow-up notes
+
+Two bugs of my own were found and fixed while verifying this batch:
+
+- The automated dark-mode pass had dimmed text inside the always-dark timer card and
+  briefing banner (it applied `dark:text-slate-500` to already-dark surfaces). Removed.
+- `loadTodos` re-seeded the demo tasks if you deleted every task and reloaded, because it
+  treated an empty stored list as "nothing saved". An intentionally empty workspace now
+  stays empty, while a list whose entries were *all* invalid is still treated as corrupt.
+  Covered by new `persistence.test.ts` cases.
 
 ## Suggested order
 

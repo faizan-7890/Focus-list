@@ -9,6 +9,7 @@ import {
   Maximize2,
   Pause,
   Play,
+  Plus,
   RotateCcw,
   Sparkles,
   Target,
@@ -41,6 +42,8 @@ interface FocusPanelProps {
   onOpenZenMode: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  /** Focuses the new-task input; used by the empty state's call to action. */
+  onAddTask?: () => void;
 }
 
 const PROJECT_BARS: Array<{
@@ -70,6 +73,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
   onOpenZenMode,
   soundEnabled,
   onToggleSound,
+  onAddTask,
 }) => {
   const currentTask =
     activeTodos.find((t) => t.id === focusedTaskId) ?? activeTodos[0] ?? null;
@@ -101,12 +105,12 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
               onClick={onToggleSound}
               title={soundEnabled ? 'Mute sound chimes' : 'Enable sound chimes'}
               aria-label={soundEnabled ? 'Mute sound chimes' : 'Enable sound chimes'}
-              className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-white rounded-md transition-colors"
+              className="icon-btn icon-btn-sm text-slate-400 hover:text-white hover:bg-slate-800"
             >
               {soundEnabled ? (
                 <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
               ) : (
-                <VolumeX className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <VolumeX className="w-3.5 h-3.5 text-slate-500" />
               )}
             </button>
 
@@ -121,7 +125,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
                 className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
                   mode === 'focus'
                     ? 'bg-slate-950 text-white'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-white'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 25m Focus
@@ -132,7 +136,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
                 className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
                   mode === 'break'
                     ? 'bg-slate-950 text-white'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-white'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 5m Break
@@ -147,7 +151,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
             type="button"
             onClick={onOpenZenMode}
             title="Open distraction-free Zen Mode"
-            className="absolute top-2.5 right-2.5 p-1.5 text-slate-500 dark:text-slate-400 hover:text-emerald-400 hover:bg-slate-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-mono"
+            className="absolute top-1.5 right-1.5 p-2 text-slate-500 hover:text-emerald-400 hover:bg-slate-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-mono"
           >
             <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">Zen Mode</span>
@@ -166,7 +170,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
                 isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'
               }`}
             />
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-slate-400">
               {mode === 'focus' ? 'Deep work interval' : 'Short restorative break'}
             </p>
           </div>
@@ -175,7 +179,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
         {/* Active Focus Task Selector */}
         {currentTask ? (
           <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
+            <div className="flex items-center justify-between text-xs text-slate-400">
               <label
                 htmlFor="focus-task-select"
                 className="flex items-center gap-1.5"
@@ -194,7 +198,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
               id="focus-task-select"
               value={currentTask.id}
               onChange={(e) => onSelectFocusTask(e.target.value)}
-              className="w-full text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
+              className="w-full text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-slate-500"
             >
               {activeTodos.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -204,9 +208,23 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
             </select>
           </div>
         ) : (
-          <p className="text-xs text-slate-400 dark:text-slate-500 py-1">
-            All tasks completed. Add a new task to begin a focus session.
-          </p>
+          <div className="space-y-2 py-1">
+            <p className="text-xs text-slate-400">
+              {stats.total === 0
+                ? 'No tasks yet. Add one to start a focus session.'
+                : 'All tasks completed. Add a new task to begin a focus session.'}
+            </p>
+            {onAddTask && (
+              <button
+                type="button"
+                onClick={onAddTask}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:text-emerald-200 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Add a task</span>
+              </button>
+            )}
+          </div>
         )}
 
         {/* Timer Controls */}
@@ -237,7 +255,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
             onClick={onResetTimer}
             aria-label="Reset focus timer"
             title="Reset timer"
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors shrink-0"
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors shrink-0"
           >
             <RotateCcw className="w-4 h-4" aria-hidden="true" />
           </button>

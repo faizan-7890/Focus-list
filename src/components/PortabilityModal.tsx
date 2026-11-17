@@ -153,7 +153,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close data portability modal"
-            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
+            className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>

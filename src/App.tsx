@@ -14,6 +14,7 @@ import {
   Edit3,
   Flag,
   Kanban,
+  Keyboard,
   LayoutList,
   ListChecks,
   Monitor,
@@ -64,6 +65,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { PortabilityModal } from './components/PortabilityModal';
 import { ZenModeModal } from './components/ZenModeModal';
 import { CalendarView } from './components/CalendarView';
+import { ShortcutsModal } from './components/ShortcutsModal';
 import { useFocusTimer } from './hooks/useFocusTimer';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useTheme, type ThemePreference } from './hooks/useTheme';
@@ -183,6 +185,7 @@ export default function App() {
   });
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [portabilityModalState, setPortabilityModalState] = useState<{
     isOpen: boolean;
     tab: 'export' | 'import';
@@ -259,6 +262,7 @@ export default function App() {
       if (
         !isInputFocused &&
         !isCommandPaletteOpen &&
+        !isShortcutsOpen &&
         !portabilityModalState.isOpen &&
         !editingTodo &&
         !newTaskDate
@@ -290,6 +294,7 @@ export default function App() {
       if (
         !isInputFocused &&
         !isCommandPaletteOpen &&
+        !isShortcutsOpen &&
         !portabilityModalState.isOpen &&
         !editingTodo &&
         !newTaskDate
@@ -300,6 +305,9 @@ export default function App() {
         } else if (e.key === 'n' || e.key === 'N') {
           e.preventDefault();
           taskInputRef.current?.focus();
+        } else if (e.key === '?') {
+          e.preventDefault();
+          setIsShortcutsOpen(true);
         }
       }
     };
@@ -307,6 +315,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     isCommandPaletteOpen,
+    isShortcutsOpen,
     portabilityModalState.isOpen,
     editingTodo,
     newTaskDate,
@@ -548,10 +557,19 @@ export default function App() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            onClick={() => setIsShortcutsOpen(true)}
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+            className="hidden sm:inline-flex icon-btn text-slate-600 dark:text-slate-400 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100"
+          >
+            <Keyboard className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
             onClick={theme.cyclePreference}
             aria-label={`Theme: ${theme.preference} (currently ${theme.resolved}). Click to switch.`}
             title={`Theme: ${THEME_LABELS[theme.preference]}`}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 shrink-0"
+            className="icon-btn text-slate-600 dark:text-slate-400 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100"
           >
             {theme.preference === 'light' ? (
               <Sun className="w-4 h-4" aria-hidden="true" />
@@ -590,46 +608,6 @@ export default function App() {
           <div className="flex flex-col xl:flex-row items-start gap-6">
             {/* Primary Center Workspace Column */}
             <div className="flex-1 w-full min-w-0 space-y-5">
-              {/* Inline Confirmation & Undo Notice */}
-              {statusBanner && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="bg-emerald-950 text-emerald-100 border border-emerald-800 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-3 shadow-sm"
-                >
-                  <span className="flex items-center gap-2 font-medium min-w-0">
-                    <CheckCircle2
-                      className="w-4 h-4 text-emerald-400 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">{statusBanner}</span>
-                  </span>
-                  <span className="flex items-center gap-2 shrink-0">
-                    {undoBannerNotice && undoRedo.canUndo && (
-                      <button
-                        type="button"
-                        onClick={executeUndo}
-                        className="px-2.5 py-1 text-xs font-semibold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-md transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
-                      >
-                        <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span>Undo</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusBanner(null);
-                        setUndoBannerNotice(null);
-                      }}
-                      aria-label="Dismiss notification"
-                      className="text-emerald-300 hover:text-white p-0.5 rounded transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" aria-hidden="true" />
-                    </button>
-                  </span>
-                </div>
-              )}
-
               {/* Architectural Daily Briefing Banner */}
               <section
                 aria-label="Workspace overview banner"
@@ -707,21 +685,21 @@ export default function App() {
                       <span className="block text-lg font-semibold text-white">
                         {stats.active}
                       </span>
-                      <span className="text-slate-400 dark:text-slate-500">Active</span>
+                      <span className="text-slate-400">Active</span>
                     </div>
                     <div className="h-7 w-px bg-slate-800" aria-hidden="true" />
                     <div>
                       <span className="block text-lg font-semibold text-amber-400">
                         {stats.dueTodayOrOverdue}
                       </span>
-                      <span className="text-slate-400 dark:text-slate-500">Due Today</span>
+                      <span className="text-slate-400">Due Today</span>
                     </div>
                     <div className="h-7 w-px bg-slate-800" aria-hidden="true" />
                     <div>
                       <span className="block text-lg font-semibold text-emerald-400">
                         {stats.completionRate}%
                       </span>
-                      <span className="text-slate-400 dark:text-slate-500">Done</span>
+                      <span className="text-slate-400">Done</span>
                     </div>
                   </div>
                 </div>
@@ -888,7 +866,7 @@ export default function App() {
                         type="button"
                         onClick={() => setSearchQuery('')}
                         aria-label="Clear search query"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        className="hit-area absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                       >
                         <X className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
@@ -1024,7 +1002,7 @@ export default function App() {
                                                handleToggleTodo(todo.id);
                                              }
                                            }}
-                                           className={`text-xs font-medium cursor-pointer select-none break-words rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
+                                           className={`text-xs font-medium cursor-pointer select-none break-words rounded ${
                                              todo.completed
                                                ? 'line-through text-slate-400 dark:text-slate-500'
                                                : 'text-slate-900 dark:text-slate-100'
@@ -1038,7 +1016,7 @@ export default function App() {
                                            type="button"
                                            onClick={() => setEditingTodo(todo)}
                                            aria-label={`Edit '${todo.title}'`}
-                                           className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded"
+                                           className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-stone-200 dark:hover:bg-slate-700"
                                          >
                                            <Edit3
                                              className="w-3.5 h-3.5"
@@ -1051,7 +1029,7 @@ export default function App() {
                                              handleDeleteTodo(todo.id)
                                            }
                                            aria-label={`Delete '${todo.title}'`}
-                                           className="p-1 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded"
+                                           className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
                                          >
                                            <Trash2
                                              className="w-3.5 h-3.5"
@@ -1155,6 +1133,7 @@ export default function App() {
 
             {/* Right Companion Focus Timer & Workload Breakdown Column */}
             <FocusPanel
+              onAddTask={() => taskInputRef.current?.focus()}
               activeTodos={activeTodos}
               focusedTaskId={focusedTaskId}
               onSelectFocusTask={setFocusedTaskId}
@@ -1177,6 +1156,54 @@ export default function App() {
             />
           </div>
         </main>
+      </div>
+
+      {/* Floating confirmation & undo toast. The live region is always
+          mounted so screen readers announce each new message; the toast floats
+          above the page so showing it never shifts the layout. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4 pointer-events-none"
+      >
+        {statusBanner && (
+          <div
+            key={statusBanner}
+            className="toast-enter pointer-events-auto w-full max-w-md bg-emerald-950 text-emerald-100 border border-emerald-800 rounded-xl pl-4 pr-2 py-2 text-xs flex items-center justify-between gap-3 shadow-lg"
+          >
+            <span className="flex items-center gap-2 font-medium min-w-0">
+              <CheckCircle2
+                className="w-4 h-4 text-emerald-400 shrink-0"
+                aria-hidden="true"
+              />
+              <span className="break-words">{statusBanner}</span>
+            </span>
+            <span className="flex items-center gap-1 shrink-0">
+              {undoBannerNotice && undoRedo.canUndo && (
+                <button
+                  type="button"
+                  onClick={executeUndo}
+                  className="px-3 py-1.5 text-xs font-semibold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-md transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                >
+                  <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Undo</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusBanner(null);
+                  setUndoBannerNotice(null);
+                }}
+                aria-label="Dismiss notification"
+                className="icon-btn icon-btn-sm text-emerald-300 hover:text-white hover:bg-emerald-900"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Edit Task Modal */}
@@ -1240,9 +1267,14 @@ export default function App() {
         onRedo={executeRedo}
         canUndo={undoRedo.canUndo}
         canRedo={undoRedo.canRedo}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
         onCycleTheme={theme.cyclePreference}
         themeLabel={THEME_LABELS[theme.preference]}
       />
+
+      {isShortcutsOpen && (
+        <ShortcutsModal onClose={() => setIsShortcutsOpen(false)} />
+      )}
 
       {/* JSON & CSV Import / Export Portability Modal */}
       <PortabilityModal
