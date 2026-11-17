@@ -134,18 +134,18 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
       <div
         ref={modalRef}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white border border-stone-200 rounded-xl w-full max-w-2xl p-6 space-y-5 shadow-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-xl w-full max-w-2xl p-6 space-y-5 shadow-lg max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-100 pb-3.5">
+        <div className="flex items-center justify-between border-b border-stone-100 dark:border-slate-800 pb-3.5">
           <div>
             <h2
               id="portability-modal-heading"
-              className="text-base font-semibold text-slate-900 font-display"
+              className="text-base font-semibold text-slate-900 dark:text-slate-100 font-display"
             >
               Data Portability — Backup & Import
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Export tasks to JSON or CSV, or import tasks with live schema validation
             </p>
           </div>
@@ -153,7 +153,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close data portability modal"
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-stone-100 transition-colors"
+            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -163,15 +163,15 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
         <div
           role="group"
           aria-label="Portability mode"
-          className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg w-fit"
+          className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-slate-800 rounded-lg w-fit"
         >
           <button
             type="button"
             onClick={() => setActiveTab('export')}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'export'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             <Download className="w-3.5 h-3.5" aria-hidden="true" />
@@ -182,8 +182,8 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
             onClick={() => setActiveTab('import')}
             className={`px-3.5 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'import'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
             <Upload className="w-3.5 h-3.5" aria-hidden="true" />
@@ -195,46 +195,46 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
           <div className="space-y-4">
             {/* Direct Download Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/60 flex flex-col justify-between gap-3">
+              <div className="p-4 rounded-xl border border-stone-200 dark:border-slate-800 bg-stone-50/60 dark:bg-slate-900/50 flex flex-col justify-between gap-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-900">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <FileText
-                      className="w-4 h-4 text-emerald-600"
+                      className="w-4 h-4 text-emerald-600 dark:text-emerald-400"
                       aria-hidden="true"
                     />
                     <span>Full JSON Workspace Backup</span>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                     Lossless backup preserving task IDs, nested subtasks, notes, and custom ordering.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={onDownloadJson}
-                  className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+                  className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                 >
                   <Download className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Download .JSON</span>
                 </button>
               </div>
 
-              <div className="p-4 rounded-xl border border-stone-200 bg-stone-50/60 flex flex-col justify-between gap-3">
+              <div className="p-4 rounded-xl border border-stone-200 dark:border-slate-800 bg-stone-50/60 dark:bg-slate-900/50 flex flex-col justify-between gap-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-900">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-slate-100">
                     <FileSpreadsheet
-                      className="w-4 h-4 text-indigo-600"
+                      className="w-4 h-4 text-indigo-600 dark:text-indigo-400"
                       aria-hidden="true"
                     />
                     <span>CSV Spreadsheet Export</span>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                     RFC-4180 CSV table with pipe-encoded subtasks ready for Excel or Google Sheets.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={onDownloadCsv}
-                  className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+                  className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                 >
                   <Download className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Download .CSV</span>
@@ -246,7 +246,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-700">
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                     Serialized Preview:
                   </span>
                   <button
@@ -254,8 +254,8 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                     onClick={() => setExportFormat('json')}
                     className={`px-2 py-0.5 text-xs rounded font-mono ${
                       exportFormat === 'json'
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-stone-100 text-slate-600 hover:text-slate-900'
+                        ? 'bg-slate-900 text-white dark:bg-slate-700'
+                        : 'bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                   >
                     JSON
@@ -265,8 +265,8 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                     onClick={() => setExportFormat('csv')}
                     className={`px-2 py-0.5 text-xs rounded font-mono ${
                       exportFormat === 'csv'
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-stone-100 text-slate-600 hover:text-slate-900'
+                        ? 'bg-slate-900 text-white dark:bg-slate-700'
+                        : 'bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                   >
                     CSV
@@ -276,7 +276,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyExport}
-                  className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-md inline-flex items-center gap-1.5 transition-colors"
+                  className="px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 rounded-md inline-flex items-center gap-1.5 transition-colors"
                 >
                   <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>{copiedNotice ? 'Copied to Clipboard' : 'Copy Text'}</span>
@@ -291,16 +291,16 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                 readOnly
                 rows={6}
                 value={exportPreview}
-                className="w-full font-mono text-xs bg-stone-50 border border-stone-200 rounded-lg p-3 text-slate-700 focus:outline-none"
+                className="w-full font-mono text-xs bg-stone-50 dark:bg-slate-900/50 border border-stone-200 dark:border-slate-800 rounded-lg p-3 text-slate-700 dark:text-slate-300 focus:outline-none"
               />
             </div>
           </div>
         ) : (
           <form onSubmit={handleImportSubmit} className="space-y-4">
             {/* File Upload or Sample Trigger */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-xl bg-stone-50 border border-stone-200">
-              <div className="text-xs text-slate-600">
-                <span className="font-medium text-slate-900">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-xl bg-stone-50 dark:bg-slate-900/50 border border-stone-200 dark:border-slate-800">
+              <div className="text-xs text-slate-600 dark:text-slate-400">
+                <span className="font-medium text-slate-900 dark:text-slate-100">
                   Select a .json or .csv file
                 </span>{' '}
                 {uploadedFileName ? `(${uploadedFileName})` : 'or paste content below'}
@@ -316,7 +316,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                 />
                 <label
                   htmlFor="import-file-upload"
-                  className="px-3 py-1.5 text-xs font-medium text-slate-800 bg-white border border-stone-300 hover:bg-stone-100 rounded-lg cursor-pointer inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
+                  className="px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 hover:bg-stone-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
                 >
                   <Upload className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Choose File</span>
@@ -324,7 +324,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                 <button
                   type="button"
                   onClick={handleLoadSampleCsv}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-stone-200/70 hover:bg-stone-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                  className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-stone-200/70 dark:bg-slate-700/60 hover:bg-stone-200 dark:hover:bg-slate-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
                 >
                   Paste Sample CSV
                 </button>
@@ -335,7 +335,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
             <div>
               <label
                 htmlFor="import-raw-textarea"
-                className="block text-xs font-medium text-slate-700 mb-1"
+                className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
               >
                 JSON or CSV Payload
               </label>
@@ -345,23 +345,23 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                 value={rawImportText}
                 onChange={(e) => setRawImportText(e.target.value)}
                 placeholder="Paste exported JSON array or CSV rows (Title,Status,Priority,Project,Due Date,Notes,Subtasks)..."
-                className="w-full font-mono text-xs bg-white border border-stone-300 rounded-lg p-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900"
+                className="w-full font-mono text-xs bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-slate-900 dark:focus:border-slate-400"
               />
             </div>
 
             {/* Live Validation Summary */}
             {validation && (
-              <div className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 space-y-2">
+              <div className="p-3.5 rounded-xl border border-stone-200 dark:border-slate-800 bg-stone-50 dark:bg-slate-900/50 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <span className="font-semibold text-slate-900 flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                     {validation.validTodos.length > 0 ? (
                       <CheckCircle2
-                        className="w-4 h-4 text-emerald-600"
+                        className="w-4 h-4 text-emerald-600 dark:text-emerald-400"
                         aria-hidden="true"
                       />
                     ) : (
                       <AlertCircle
-                        className="w-4 h-4 text-red-600"
+                        className="w-4 h-4 text-red-600 dark:text-red-400"
                         aria-hidden="true"
                       />
                     )}
@@ -370,7 +370,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                     </span>
                   </span>
 
-                  <span className="font-mono text-slate-600 tabular-nums">
+                  <span className="font-mono text-slate-600 dark:text-slate-400 tabular-nums">
                     <strong>{validation.validTodos.length}</strong> valid tasks ·{' '}
                     <strong>{validation.totalSubtasks}</strong> subtasks
                   </span>
@@ -379,7 +379,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                 {validation.errors.length > 0 && (
                   <ul
                     role="alert"
-                    className="space-y-1 text-xs text-red-600 pt-1 border-t border-stone-200"
+                    className="space-y-1 text-xs text-red-600 dark:text-red-400 pt-1 border-t border-stone-200 dark:border-slate-800"
                   >
                     {validation.errors.slice(0, 4).map((err, i) => (
                       <li key={i} className="flex items-center gap-1.5">
@@ -396,11 +396,11 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
             )}
 
             {/* Import Mode Selector (Merge vs Replace) */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-stone-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-stone-100 dark:border-slate-800">
               <div className="flex items-center gap-2 text-xs">
                 <label
                   htmlFor="import-mode-select"
-                  className="text-slate-600 font-medium whitespace-nowrap"
+                  className="text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap"
                 >
                   Import Mode:
                 </label>
@@ -408,7 +408,7 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                   id="import-mode-select"
                   value={importMode}
                   onChange={(e) => setImportMode(e.target.value as ImportMode)}
-                  className="bg-stone-50 border border-stone-300 text-slate-900 rounded-lg px-2.5 py-1.5 font-medium focus:outline-none focus:border-slate-900"
+                  className="bg-stone-50 dark:bg-slate-900/50 border border-stone-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-2.5 py-1.5 font-medium focus:outline-none focus:border-slate-900 dark:focus:border-slate-400"
                 >
                   <option value="merge">
                     Merge (Keep existing & prepend new tasks)
@@ -423,14 +423,14 @@ export const PortabilityModal: React.FC<PortabilityModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                  className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!validation || validation.validTodos.length === 0}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none rounded-lg transition-colors whitespace-nowrap shrink-0"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-40 disabled:pointer-events-none rounded-lg transition-colors whitespace-nowrap shrink-0"
                 >
                   Confirm Import
                 </button>

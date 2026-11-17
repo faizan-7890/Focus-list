@@ -9,6 +9,26 @@
     <meta property="og:description" content="A clean, fast task and priority manager with project lists, subtasks, keyboard shortcuts, and local persistence." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#F4F4F0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
+    <!--
+      Apply the saved theme before first paint to avoid a flash of the wrong
+      theme (FOUC). Mirrors the resolution logic in src/hooks/useTheme.ts.
+    -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem('focuslist_theme');
+          var dark =
+            pref === 'dark' ||
+            ((!pref || pref === 'system') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.classList.toggle('dark', dark);
+          root.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet" />

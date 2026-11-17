@@ -8,6 +8,7 @@ import {
   Kanban,
   Layers,
   LayoutList,
+  Moon,
   Plus,
   RotateCcw,
   Search,
@@ -38,6 +39,8 @@ export interface CommandPaletteProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onCycleTheme?: () => void;
+  themeLabel?: string;
 }
 
 interface CommandItem {
@@ -70,6 +73,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onRedo,
   canUndo = false,
   canRedo = false,
+  onCycleTheme,
+  themeLabel,
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -97,7 +102,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Quick Actions',
         keywords: 'add new task create deliverable',
         shortcut: 'N',
-        icon: <Plus className="w-4 h-4 text-slate-600" aria-hidden="true" />,
+        icon: <Plus className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
         onSelect: () => {
           onClose();
           onFocusNewTask();
@@ -112,7 +117,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Quick Actions',
         keywords: 'undo revert back previous restore cancel',
         shortcut: '⌘Z',
-        icon: <RotateCcw className="w-4 h-4 text-amber-600" aria-hidden="true" />,
+        icon: <RotateCcw className="w-4 h-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
         onSelect: () => {
           onClose();
           onUndo();
@@ -127,10 +132,24 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Quick Actions',
         keywords: 'redo forward repeat again',
         shortcut: '⌘⇧Z',
-        icon: <RotateCcw className="w-4 h-4 text-emerald-600 -scale-x-100 transform" aria-hidden="true" />,
+        icon: <RotateCcw className="w-4 h-4 text-emerald-600 dark:text-emerald-400 -scale-x-100 transform" aria-hidden="true" />,
         onSelect: () => {
           onClose();
           onRedo();
+        },
+      });
+    }
+
+    if (onCycleTheme) {
+      base.push({
+        id: 'cmd-theme',
+        label: `Switch Theme${themeLabel ? ` (now ${themeLabel})` : ''}`,
+        group: 'Quick Actions',
+        keywords: 'theme dark light mode system appearance toggle color scheme',
+        icon: <Moon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
+        onSelect: () => {
+          onClose();
+          onCycleTheme();
         },
       });
     }
@@ -142,7 +161,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Navigation & Views',
         keywords: 'view list rows checklist',
         icon: (
-          <LayoutList className="w-4 h-4 text-slate-600" aria-hidden="true" />
+          <LayoutList className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
         ),
         onSelect: () => {
           onSelectLayout('list');
@@ -154,7 +173,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Switch to Priority Board View',
         group: 'Navigation & Views',
         keywords: 'view board kanban columns priority',
-        icon: <Kanban className="w-4 h-4 text-slate-600" aria-hidden="true" />,
+        icon: <Kanban className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectLayout('board');
           onClose();
@@ -166,7 +185,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Navigation & Views',
         keywords: 'view calendar month dates due schedule',
         icon: (
-          <CalendarDays className="w-4 h-4 text-slate-600" aria-hidden="true" />
+          <CalendarDays className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
         ),
         onSelect: () => {
           onSelectLayout('calendar');
@@ -179,7 +198,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Data Portability',
         keywords: 'export download json backup file save',
         icon: (
-          <Download className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+          <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
         ),
         onSelect: () => {
           onExportJson();
@@ -192,7 +211,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Data Portability',
         keywords: 'export download csv spreadsheet excel sheets',
         icon: (
-          <Download className="w-4 h-4 text-indigo-600" aria-hidden="true" />
+          <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
         ),
         onSelect: () => {
           onExportCsv();
@@ -204,7 +223,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Import Tasks from JSON or CSV',
         group: 'Data Portability',
         keywords: 'import upload restore json csv merge replace',
-        icon: <Upload className="w-4 h-4 text-amber-600" aria-hidden="true" />,
+        icon: <Upload className="w-4 h-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
         onSelect: () => {
           onClose();
           onOpenImportModal();
@@ -215,7 +234,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Go to All Tasks',
         group: 'Navigation & Views',
         keywords: 'view all tasks overview',
-        icon: <Layers className="w-4 h-4 text-slate-600" aria-hidden="true" />,
+        icon: <Layers className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectView('all');
           onSelectStatus('all');
@@ -227,7 +246,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Go to Due Today',
         group: 'Navigation & Views',
         keywords: 'view today overdue urgent schedule',
-        icon: <Layers className="w-4 h-4 text-slate-600" aria-hidden="true" />,
+        icon: <Layers className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectView('today');
           onClose();
@@ -238,7 +257,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Go to Scheduled Tasks',
         group: 'Navigation & Views',
         keywords: 'view upcoming scheduled calendar',
-        icon: <Layers className="w-4 h-4 text-slate-600" aria-hidden="true" />,
+        icon: <Layers className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectView('upcoming');
           onClose();
@@ -249,7 +268,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Go to High Priority',
         group: 'Navigation & Views',
         keywords: 'view high priority critical flag',
-        icon: <Layers className="w-4 h-4 text-slate-600" aria-hidden="true" />,
+        icon: <Layers className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectView('high-priority');
           onClose();
@@ -260,7 +279,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Filter Project: Work',
         group: 'Navigation & Views',
         keywords: 'project work office career',
-        icon: <Folder className="w-4 h-4 text-indigo-600" aria-hidden="true" />,
+        icon: <Folder className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectView('Work');
           onClose();
@@ -272,7 +291,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Navigation & Views',
         keywords: 'project personal home life',
         icon: (
-          <Folder className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+          <Folder className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
         ),
         onSelect: () => {
           onSelectView('Personal');
@@ -284,7 +303,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Filter Project: Errands',
         group: 'Navigation & Views',
         keywords: 'project errands shopping groceries',
-        icon: <Folder className="w-4 h-4 text-amber-600" aria-hidden="true" />,
+        icon: <Folder className="w-4 h-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectView('Errands');
           onClose();
@@ -295,7 +314,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Filter Project: Study',
         group: 'Navigation & Views',
         keywords: 'project study learning reading course',
-        icon: <Folder className="w-4 h-4 text-sky-600" aria-hidden="true" />,
+        icon: <Folder className="w-4 h-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />,
         onSelect: () => {
           onSelectView('Study');
           onClose();
@@ -307,7 +326,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Quick Actions',
         keywords: 'complete all mark active bulk',
         icon: (
-          <CheckCircle2 className="w-4 h-4 text-slate-600" aria-hidden="true" />
+          <CheckCircle2 className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
         ),
         onSelect: () => {
           onToggleAll();
@@ -319,7 +338,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         label: 'Clear Completed Tasks',
         group: 'Quick Actions',
         keywords: 'clear delete remove completed done',
-        icon: <Trash2 className="w-4 h-4 text-slate-600" aria-hidden="true" />,
+        icon: <Trash2 className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
         onSelect: () => {
           onClearCompleted();
           onClose();
@@ -331,7 +350,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         group: 'Quick Actions',
         keywords: 'restore reset demo sample seed',
         icon: (
-          <RotateCcw className="w-4 h-4 text-slate-600" aria-hidden="true" />
+          <RotateCcw className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
         ),
         onSelect: () => {
           onResetDemo();
@@ -348,7 +367,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       icon: (
         <CheckCircle2
           className={`w-4 h-4 ${
-            todo.completed ? 'text-emerald-600' : 'text-slate-400'
+            todo.completed ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
           }`}
           aria-hidden="true"
         />
@@ -378,6 +397,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onClearCompleted,
     onResetDemo,
     onToggleTodo,
+    onCycleTheme,
+    themeLabel,
   ]);
 
   const filteredCommands = useMemo(() => {
@@ -448,16 +469,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
-        className="bg-white border border-stone-200 rounded-xl w-full max-w-xl shadow-lg overflow-hidden"
+        className="bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-xl w-full max-w-xl shadow-lg overflow-hidden"
       >
         <h2 id="command-palette-heading" className="sr-only">
           Command Palette
         </h2>
 
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-stone-200">
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-stone-200 dark:border-slate-800">
           <Search
-            className="w-4 h-4 text-slate-400 shrink-0"
+            className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0"
             aria-hidden="true"
           />
           <label htmlFor="command-palette-input" className="sr-only">
@@ -470,13 +491,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a command, view, export, or task name..."
-            className="flex-1 text-sm text-slate-900 placeholder:text-slate-400 bg-transparent border-0 focus:outline-none"
+            className="flex-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-transparent border-0 focus:outline-none"
           />
           <button
             type="button"
             onClick={onClose}
             aria-label="Close command palette"
-            className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-stone-100 transition-colors"
+            className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -496,8 +517,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       onClick={cmd.onSelect}
                       className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-left text-xs ${
                         isSelected
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-700 hover:bg-stone-100'
+                          ? 'bg-slate-900 text-white dark:bg-slate-700'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       <span className="flex items-center gap-2.5 min-w-0">
@@ -511,7 +532,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       <span className="flex items-center gap-2 shrink-0">
                         <span
                           className={`text-[11px] ${
-                            isSelected ? 'text-slate-300' : 'text-slate-400'
+                            isSelected ? 'text-slate-300' : 'text-slate-400 dark:text-slate-500'
                           }`}
                         >
                           {cmd.group}
@@ -521,7 +542,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                             className={`font-mono text-[11px] px-1.5 py-0.5 rounded border ${
                               isSelected
                                 ? 'border-slate-700 bg-slate-800 text-slate-200'
-                                : 'border-stone-200 bg-stone-50 text-slate-500'
+                                : 'border-stone-200 dark:border-slate-800 bg-stone-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400'
                             }`}
                           >
                             {cmd.shortcut}
@@ -535,9 +556,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </ul>
           ) : (
             <div className="py-6 px-4 text-center space-y-3">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 No matching command found for{' '}
-                <strong className="text-slate-800">"{query}"</strong>.
+                <strong className="text-slate-800 dark:text-slate-200">"{query}"</strong>.
               </p>
               {query.trim() && (
                 <button
@@ -546,7 +567,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onQuickCreateTask(query.trim());
                     onClose();
                   }}
-                  className="px-3.5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors inline-flex items-center gap-1.5"
+                  className="px-3.5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 rounded-lg transition-colors inline-flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Create task "{query.trim()}"</span>
@@ -557,7 +578,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Footer Keyboard Navigation Legend */}
-        <div className="px-4 py-2.5 bg-stone-50 border-t border-stone-200 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+        <div className="px-4 py-2.5 bg-stone-50 dark:bg-slate-900/50 border-t border-stone-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
           <span>Up/Down to navigate · Enter to run · ESC to close</span>
           <span className="inline-flex items-center gap-1">
             <CornerDownLeft className="w-3 h-3" aria-hidden="true" />
