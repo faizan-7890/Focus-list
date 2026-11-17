@@ -30,8 +30,10 @@
   - **Pomodoro Counter (`🍅`)**: Automatically increments the completed focus session count on the active deliverable whenever a 25-minute focus interval finishes.
   - **Fullscreen Zen Mode**: Distraction-free dark canvas featuring an animated SVG circular progress ring, active task and subtask checklist controls, and single-key shortcuts.
   - **Zero-Asset Web Audio Chimes**: Synthesized acoustic chimes on timer start, interval completion, and task completion (with one-click mute/unmute).
-- **Global Command Palette (`Ctrl/Cmd + K`)**: Jump to any view, toggle layout modes, trigger exports/imports, complete tasks, or create a new task directly from the command query.
+- **Global Command Palette (`Ctrl/Cmd + K`)**: Jump to any view, toggle layout modes, switch the theme, trigger exports/imports, complete tasks, or create a new task directly from the command query.
+- **Light / Dark / System Theme**: A header toggle (and a *Switch Theme* command) cycles **Light → Dark → System**. The choice persists to `localStorage`, follows your OS when set to *System*, and is applied before first paint so there is no flash of the wrong theme on load.
 - **Validated JSON & CSV Import/Export**: Back up your workspace to `.json` or `.csv`, and import external files with a live validation preview supporting **Merge** or **Replace** modes.
+- **Versioned, Self-Healing Local Storage**: Tasks are saved under a versioned `{ version, todos }` envelope with an ordered migration path. On load, older/legacy data is migrated forward and every field is sanitized, so a future schema change or a single corrupt value can never silently wipe your workspace.
 
 ---
 
@@ -117,6 +119,9 @@ Core state transformations, filtering, sorting, and serialization are decoupled 
 - `src/utils/todoLogic.ts`: Pure functions for task CRUD, subtask checklists, Pomodoro increments, multi-criteria filtering/sorting, workspace statistics, and RFC-4180 CSV / JSON serialization and validation.
 - `src/utils/todoLogic.test.ts`: Unit test suite (`node:test` + `node:assert/strict`) covering task creation, Pomodoro tracking, subtask operations, reordering, filtering, stats, and JSON/CSV round-trip import/export.
 - `src/hooks/useFocusTimer.ts`: Custom React hook managing persistent timestamp-based countdowns, live `document.title` updates, browser notifications, and sound triggers.
+- `src/hooks/useTheme.ts`: Theme hook managing the Light/Dark/System preference — persistence, live OS-change tracking, and applying the `dark` class + `color-scheme` to `<html>`.
+- `src/utils/persistence.ts`: Versioned `localStorage` layer — the `{ version, todos }` envelope, ordered migrations, per-field sanitization, and legacy-key recovery.
+- `src/utils/persistence.test.ts`: Unit tests for sanitization, envelope/legacy parsing, and migrations.
 - `src/utils/soundEffects.ts`: Zero-dependency Web Audio API synthesizer generating harmonic chimes for timer start, interval completion, and task completion.
 - `src/components/ZenModeModal.tsx`: Fullscreen distraction-free focus modal with SVG progress ring, live checklist interaction, and keyboard shortcuts (`Space`, `R`, `M`, `Esc`).
 - `src/components/FocusPanel.tsx`: Right-hand companion panel housing the 25m/5m timer readout, Zen Mode launcher, and interactive project workload chart.

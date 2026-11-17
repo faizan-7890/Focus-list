@@ -126,12 +126,22 @@ makes a repo feel finished.
 Pick **one** and build it yourself (ask me to guide, not to write it). This is the
 part you'll talk about in interviews.
 
-- [ ] **Dark mode** — a theme toggle saved to localStorage.
+- [x] **Dark mode** — a Light/Dark/System toggle saved to localStorage, applied via a
+  class-based Tailwind `dark:` variant with a no-flash boot script. See
+  `src/hooks/useTheme.ts` and the header toggle / command-palette command.
 - [ ] **Recurring tasks** — "repeat daily/weekly."
 - [ ] **A simple stats page** — tasks completed per day this week, as a small chart.
 - [ ] **Keyboard-only task creation** — type `Tab: title @Work !high` and parse it.
 
 Whichever you pick: design it first in a few sentences, then build it in small commits.
+
+### Also added: data-safety (versioned storage)
+
+- [x] **Versioned, self-healing persistence.** Saved tasks now use a `{ version, todos }`
+  envelope with an ordered migration path and per-field sanitization, replacing the
+  old "parse a bare array or wipe to the demo seed" load. A future schema change or a
+  single corrupt value can no longer silently drop the workspace. See
+  `src/utils/persistence.ts` (+ `persistence.test.ts`).
 
 ---
 

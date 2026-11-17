@@ -34,22 +34,22 @@ const CATEGORY_META: Array<{
   {
     id: 'Work',
     label: 'Work',
-    icon: <Briefcase className="w-4 h-4 text-indigo-600" aria-hidden="true" />,
+    icon: <Briefcase className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />,
   },
   {
     id: 'Personal',
     label: 'Personal',
-    icon: <User className="w-4 h-4 text-emerald-600" aria-hidden="true" />,
+    icon: <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />,
   },
   {
     id: 'Errands',
     label: 'Errands',
-    icon: <ShoppingBag className="w-4 h-4 text-amber-600" aria-hidden="true" />,
+    icon: <ShoppingBag className="w-4 h-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />,
   },
   {
     id: 'Study',
     label: 'Study',
-    icon: <BookOpen className="w-4 h-4 text-sky-600" aria-hidden="true" />,
+    icon: <BookOpen className="w-4 h-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />,
   },
 ];
 
@@ -97,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside
       aria-label="Task lists and workspace summary"
-      className="w-full lg:w-64 shrink-0 bg-white border-b lg:border-b-0 lg:border-r border-stone-200/90 flex flex-col justify-between p-3.5 sm:p-5"
+      className="w-full lg:w-64 shrink-0 bg-white dark:bg-slate-900 border-b lg:border-b-0 lg:border-r border-stone-200/90 dark:border-slate-800 flex flex-col justify-between p-3.5 sm:p-5"
     >
       {/* Mobile Compact Switcher (visible below lg) */}
       <div className="lg:hidden space-y-2.5">
@@ -111,14 +111,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onSelectView(item.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
+                    ? 'bg-slate-900 text-white dark:bg-slate-700'
+                    : 'bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-stone-200 dark:hover:bg-slate-700'
                 }`}
               >
                 <span>{item.label}</span>
                 <span
                   className={`font-mono tabular-nums ${
-                    isActive ? 'text-slate-300' : 'text-slate-500'
+                    isActive ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   {item.count}
@@ -136,14 +136,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onSelectView(cat.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
+                    ? 'bg-slate-900 text-white dark:bg-slate-700'
+                    : 'bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-stone-200 dark:hover:bg-slate-700'
                 }`}
               >
                 <span>{cat.label}</span>
                 <span
                   className={`font-mono tabular-nums ${
-                    isActive ? 'text-slate-300' : 'text-slate-500'
+                    isActive ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   {count}
@@ -157,19 +157,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Desktop Full Navigation (visible lg and up) */}
       <div className="hidden lg:block space-y-6">
         {/* Executive Workspace Identity Card + Quick Command Trigger */}
-        <div className="space-y-3 border-b border-stone-200/80 pb-4">
+        <div className="space-y-3 border-b border-stone-200/80 dark:border-slate-800 pb-4">
           <div className="flex items-center gap-3 px-2">
             <div
               aria-hidden="true"
-              className="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-display font-bold text-xs tracking-wider shrink-0"
+              className="w-9 h-9 rounded-lg bg-slate-900 text-white dark:bg-slate-700 flex items-center justify-center font-display font-bold text-xs tracking-wider shrink-0"
             >
               FL
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate font-display">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate font-display">
                 Personal Workspace
               </p>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                 Daily Priority Planner
               </p>
             </div>
@@ -178,13 +178,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onOpenCommandPalette}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-stone-100 hover:bg-stone-200/80 text-slate-700 transition-colors whitespace-nowrap shrink-0"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-stone-100 dark:bg-slate-800 hover:bg-stone-200/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors whitespace-nowrap shrink-0"
           >
             <span className="flex items-center gap-2">
-              <Command className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
+              <Command className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
               <span>Command Palette</span>
             </span>
-            <kbd className="font-mono text-[11px] text-slate-500 bg-white px-1.5 py-0.5 rounded border border-stone-200">
+            <kbd className="font-mono text-[11px] text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-stone-200 dark:border-slate-800">
               Ctrl+K
             </kbd>
           </button>
@@ -192,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Smart Views */}
         <div>
-          <h2 className="text-xs font-semibold text-slate-500 px-2.5 mb-2">
+          <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2.5 mb-2">
             Smart Views
           </h2>
           <nav aria-label="Smart views" className="space-y-1">
@@ -203,10 +203,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => onSelectView(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
                     isActive
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-700 hover:bg-stone-100 hover:text-slate-900'
+                      ? 'bg-slate-900 text-white dark:bg-slate-700'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   <span className="flex items-center gap-2.5 truncate">
@@ -215,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                   <span
                     className={`font-mono text-xs tabular-nums ${
-                      isActive ? 'text-slate-300' : 'text-slate-500'
+                      isActive ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     {item.count}
@@ -228,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Project Categories */}
         <div>
-          <h2 className="text-xs font-semibold text-slate-500 px-2.5 mb-2">
+          <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2.5 mb-2">
             Projects
           </h2>
           <nav aria-label="Project categories" className="space-y-1">
@@ -240,10 +240,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={cat.id}
                   type="button"
                   onClick={() => onSelectView(cat.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
                     isActive
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-700 hover:bg-stone-100 hover:text-slate-900'
+                      ? 'bg-slate-900 text-white dark:bg-slate-700'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   <span className="flex items-center gap-2.5 truncate">
@@ -254,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                   <span
                     className={`font-mono text-xs tabular-nums ${
-                      isActive ? 'text-slate-300' : 'text-slate-500'
+                      isActive ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     {count}
@@ -267,22 +267,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Progress, Data Portability & Quick Actions Footer (Desktop) */}
-      <div className="hidden lg:block pt-5 mt-6 border-t border-stone-200/80 space-y-4">
-        <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3.5 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-600">
-            <span className="font-medium flex items-center gap-1.5 text-slate-800">
+      <div className="hidden lg:block pt-5 mt-6 border-t border-stone-200/80 dark:border-slate-800 space-y-4">
+        <div className="bg-stone-50 dark:bg-slate-900/50 border border-stone-200/80 dark:border-slate-800 rounded-xl p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+            <span className="font-medium flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
               <CheckCircle2
-                className="w-3.5 h-3.5 text-emerald-600"
+                className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"
                 aria-hidden="true"
               />
               Completion Rate
             </span>
-            <span className="font-mono font-semibold text-slate-900 tabular-nums">
+            <span className="font-mono font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
               {stats.completed}/{stats.total} ({stats.completionRate}%)
             </span>
           </div>
           <div
-            className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden"
+            className="w-full h-1.5 bg-stone-200 dark:bg-slate-800 rounded-full overflow-hidden"
             role="progressbar"
             aria-valuenow={stats.completionRate}
             aria-valuemin={0}
@@ -301,7 +301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => onOpenPortability('export')}
-            className="py-2 px-2.5 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+            className="py-2 px-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Download className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Export</span>
@@ -309,7 +309,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => onOpenPortability('import')}
-            className="py-2 px-2.5 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+            className="py-2 px-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Upload className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Import</span>
@@ -321,10 +321,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={onClearCompleted}
-              className="w-full py-2 px-3 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors text-left flex items-center justify-between whitespace-nowrap shrink-0"
+              className="w-full py-2 px-3 text-xs font-medium text-slate-700 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 rounded-lg transition-colors text-left flex items-center justify-between whitespace-nowrap shrink-0"
             >
               <span>Clear Completed Tasks</span>
-              <span className="font-mono tabular-nums text-slate-500">
+              <span className="font-mono tabular-nums text-slate-500 dark:text-slate-400">
                 {stats.completed}
               </span>
             </button>
@@ -332,7 +332,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onResetDemo}
-            className="w-full py-2 px-3 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-stone-100 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0"
+            className="w-full py-2 px-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Restore Sample Tasks</span>

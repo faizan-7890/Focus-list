@@ -16,8 +16,11 @@ import {
   Kanban,
   LayoutList,
   ListChecks,
+  Monitor,
+  Moon,
   Plus,
   Search,
+  Sun,
   Trash2,
   Undo2,
   Upload,
@@ -63,9 +66,15 @@ import { ZenModeModal } from './components/ZenModeModal';
 import { CalendarView } from './components/CalendarView';
 import { useFocusTimer } from './hooks/useFocusTimer';
 import { useUndoRedo } from './hooks/useUndoRedo';
+import { useTheme, type ThemePreference } from './hooks/useTheme';
 import { playTaskCompleteSound } from './utils/soundEffects';
+import { clearLegacyStorage, loadTodos, saveTodos } from './utils/persistence';
 
-const STORAGE_KEY = 'focuslist_todos_v1';
+const THEME_LABELS: Record<ThemePreference, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+};
 
 const VIEW_TITLES: Record<ViewFilter, { title: string; subtitle: string }> = {
   all: {
@@ -110,17 +119,17 @@ const BOARD_COLUMNS: Array<{
   {
     priority: 'high',
     title: 'High Priority',
-    accentText: 'text-red-700',
+    accentText: 'text-red-700 dark:text-red-400',
   },
   {
     priority: 'medium',
     title: 'Medium Priority',
-    accentText: 'text-amber-700',
+    accentText: 'text-amber-700 dark:text-amber-400',
   },
   {
     priority: 'low',
     title: 'Low Priority',
-    accentText: 'text-slate-600',
+    accentText: 'text-slate-600 dark:text-slate-400',
   },
 ];
 
@@ -141,20 +150,12 @@ export default function App() {
     });
   }, [todayDate]);
 
-  const [todos, setTodos] = useState<TodoItem[]>(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
-      }
-    } catch {
-      // Fall back to deterministic seed tasks
-    }
-    return getInitialDemoTodos(todayDate);
-  });
+  // Load through the versioned persistence layer: reads the current envelope,
+  // migrates older/legacy data forward, sanitizes every field, and falls back
+  // to the demo seed only when nothing usable is stored. See utils/persistence.
+  const [todos, setTodos] = useState<TodoItem[]>(() =>
+    loadTodos(() => getInitialDemoTodos(todayDate)).todos
+  );
 
   const [activeView, setActiveView] = useState<ViewFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -193,12 +194,16 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-    } catch {
-      // Ignore storage quota errors in restricted frames
-    }
+    saveTodos(todos);
   }, [todos]);
+
+  // Once data is persisted under the versioned key, drop the legacy key so a
+  // stale v1 copy can never shadow newer state on a later load.
+  useEffect(() => {
+    clearLegacyStorage();
+  }, []);
+
+  const theme = useTheme();
 
   const showTransientNotice = (msg: string) => {
     setStatusBanner(msg);
@@ -472,9 +477,9 @@ export default function App() {
       : 'Work';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F4F0] text-slate-900">
+    <div className="min-h-screen flex flex-col bg-[#F4F4F0] dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       {/* 3-Zone Top Bar Contract */}
-      <header className="bg-white border-b border-stone-200/90 px-6 py-3.5 flex items-center justify-between gap-8">
+      <header className="bg-white dark:bg-slate-900 border-b border-stone-200/90 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between gap-8">
         {/* Zone 1: Single text element wordmark */}
         <a
           href="#top"
@@ -483,7 +488,7 @@ export default function App() {
             setActiveView('all');
             setStatusFilter('all');
           }}
-          className="text-lg font-bold tracking-tight text-slate-900 font-display whitespace-nowrap shrink-0"
+          className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 font-display whitespace-nowrap shrink-0"
         >
           Focuslist
         </a>
@@ -491,14 +496,14 @@ export default function App() {
         {/* Zone 2: 4 concise single-line text navigation links */}
         <nav
           aria-label="Primary view navigation"
-          className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600"
+          className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-400"
         >
           <button
             type="button"
             onClick={() => setActiveView('all')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
+            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0 ${
               activeView === 'all'
-                ? 'text-slate-900 underline underline-offset-4'
+                ? 'text-slate-900 dark:text-slate-100 underline underline-offset-4'
                 : ''
             }`}
           >
@@ -507,9 +512,9 @@ export default function App() {
           <button
             type="button"
             onClick={() => setActiveView('today')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
+            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0 ${
               activeView === 'today'
-                ? 'text-slate-900 underline underline-offset-4'
+                ? 'text-slate-900 dark:text-slate-100 underline underline-offset-4'
                 : ''
             }`}
           >
@@ -518,9 +523,9 @@ export default function App() {
           <button
             type="button"
             onClick={() => setActiveView('upcoming')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
+            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0 ${
               activeView === 'upcoming'
-                ? 'text-slate-900 underline underline-offset-4'
+                ? 'text-slate-900 dark:text-slate-100 underline underline-offset-4'
                 : ''
             }`}
           >
@@ -529,9 +534,9 @@ export default function App() {
           <button
             type="button"
             onClick={() => setActiveView('high-priority')}
-            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
+            className={`hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0 ${
               activeView === 'high-priority'
-                ? 'text-slate-900 underline underline-offset-4'
+                ? 'text-slate-900 dark:text-slate-100 underline underline-offset-4'
                 : ''
             }`}
           >
@@ -539,12 +544,27 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Zone 3: 1 primary action */}
-        <div className="flex items-center shrink-0">
+        {/* Zone 3: theme toggle + primary action */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={theme.cyclePreference}
+            aria-label={`Theme: ${theme.preference} (currently ${theme.resolved}). Click to switch.`}
+            title={`Theme: ${THEME_LABELS[theme.preference]}`}
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 shrink-0"
+          >
+            {theme.preference === 'light' ? (
+              <Sun className="w-4 h-4" aria-hidden="true" />
+            ) : theme.preference === 'dark' ? (
+              <Moon className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <Monitor className="w-4 h-4" aria-hidden="true" />
+            )}
+          </button>
           <button
             type="button"
             onClick={() => taskInputRef.current?.focus()}
-            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Plus className="w-3.5 h-3.5" aria-hidden="true" />
             <span>New Task</span>
@@ -687,21 +707,21 @@ export default function App() {
                       <span className="block text-lg font-semibold text-white">
                         {stats.active}
                       </span>
-                      <span className="text-slate-400">Active</span>
+                      <span className="text-slate-400 dark:text-slate-500">Active</span>
                     </div>
                     <div className="h-7 w-px bg-slate-800" aria-hidden="true" />
                     <div>
                       <span className="block text-lg font-semibold text-amber-400">
                         {stats.dueTodayOrOverdue}
                       </span>
-                      <span className="text-slate-400">Due Today</span>
+                      <span className="text-slate-400 dark:text-slate-500">Due Today</span>
                     </div>
                     <div className="h-7 w-px bg-slate-800" aria-hidden="true" />
                     <div>
                       <span className="block text-lg font-semibold text-emerald-400">
                         {stats.completionRate}%
                       </span>
-                      <span className="text-slate-400">Done</span>
+                      <span className="text-slate-400 dark:text-slate-500">Done</span>
                     </div>
                   </div>
                 </div>
@@ -725,7 +745,7 @@ export default function App() {
                     <div
                       role="group"
                       aria-label="Filter tasks by completion status"
-                      className="flex items-center gap-1 p-1 bg-stone-200/80 rounded-lg"
+                      className="flex items-center gap-1 p-1 bg-stone-200/80 dark:bg-slate-700/60 rounded-lg"
                     >
                       {(
                         ['all', 'active', 'completed'] as StatusFilter[]
@@ -743,8 +763,8 @@ export default function App() {
                             onClick={() => setStatusFilter(status)}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
                               statusFilter === status
-                                ? 'bg-white text-slate-900 shadow-xs'
-                                : 'text-slate-600 hover:text-slate-900'
+                                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                             }`}
                           >
                             {label}
@@ -757,15 +777,15 @@ export default function App() {
                     <div
                       role="group"
                       aria-label="Switch layout view"
-                      className="flex items-center gap-1 p-1 bg-stone-200/80 rounded-lg"
+                      className="flex items-center gap-1 p-1 bg-stone-200/80 dark:bg-slate-700/60 rounded-lg"
                     >
                       <button
                         type="button"
                         onClick={() => setLayoutMode('list')}
                         className={`px-2.5 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                           layoutMode === 'list'
-                            ? 'bg-white text-slate-900 shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                         }`}
                       >
                         <LayoutList className="w-3.5 h-3.5" aria-hidden="true" />
@@ -776,8 +796,8 @@ export default function App() {
                         onClick={() => setLayoutMode('board')}
                         className={`px-2.5 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                           layoutMode === 'board'
-                            ? 'bg-white text-slate-900 shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                         }`}
                       >
                         <Kanban className="w-3.5 h-3.5" aria-hidden="true" />
@@ -788,8 +808,8 @@ export default function App() {
                         onClick={() => setLayoutMode('calendar')}
                         className={`px-2.5 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
                           layoutMode === 'calendar'
-                            ? 'bg-white text-slate-900 shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                         }`}
                       >
                         <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
@@ -803,7 +823,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setIsCommandPaletteOpen(true)}
-                      className="lg:hidden px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-stone-200/90 hover:bg-stone-50 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                      className="lg:hidden px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 hover:bg-stone-50 dark:hover:bg-slate-800/60 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
                     >
                       <Command className="w-3.5 h-3.5" aria-hidden="true" />
                       <span>Commands</span>
@@ -818,7 +838,7 @@ export default function App() {
                         })
                       }
                       aria-label="Export or Import Tasks"
-                      className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-stone-200/90 hover:bg-stone-50 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                      className="px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 hover:bg-stone-50 dark:hover:bg-slate-800/60 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
                     >
                       <Download className="w-3.5 h-3.5" aria-hidden="true" />
                       <span>Import / Export</span>
@@ -828,7 +848,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={handleToggleAll}
-                        className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-stone-200/90 hover:bg-stone-50 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                        className="px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 hover:bg-stone-50 dark:hover:bg-slate-800/60 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
                       >
                         <CheckCheck
                           className="w-3.5 h-3.5"
@@ -848,7 +868,7 @@ export default function App() {
                 <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
                   <div className="relative flex-1 min-w-[200px]">
                     <Search
-                      className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                      className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                       aria-hidden="true"
                     />
                     <label htmlFor="search-tasks-input" className="sr-only">
@@ -861,14 +881,14 @@ export default function App() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search tasks by title, notes, project, or subtask... (/)"
-                      className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-stone-200/90 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                      className="w-full pl-8 pr-7 py-1.5 text-xs bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-slate-400 dark:focus:border-slate-500"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
                         aria-label="Clear search query"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                       >
                         <X className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
@@ -878,7 +898,7 @@ export default function App() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <label
                       htmlFor="sort-tasks-select"
-                      className="text-xs text-slate-500 font-medium whitespace-nowrap"
+                      className="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap"
                     >
                       Sort by:
                     </label>
@@ -886,7 +906,7 @@ export default function App() {
                       id="sort-tasks-select"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as SortBy)}
-                      className="text-xs bg-white border border-stone-200/90 rounded-lg px-2.5 py-1.5 text-slate-800 font-medium focus:outline-none focus:border-slate-400"
+                      className="text-xs bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:border-slate-400 dark:focus:border-slate-500"
                     >
                       <option value="manual">Manual Order</option>
                       <option value="priority">Priority (High-Low)</option>
@@ -907,10 +927,10 @@ export default function App() {
                 />
               ) : visibleTodos.length > 0 ? (
                 layoutMode === 'list' ? (
-                  <div className="bg-white border border-stone-200/90 rounded-xl overflow-hidden">
+                  <div className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-xl overflow-hidden">
                     <ul
                       aria-label="Task list"
-                      className="divide-y divide-stone-200/80"
+                      className="divide-y divide-stone-200/80 dark:divide-slate-800"
                     >
                       {visibleTodos.map((todo, idx) => (
                         <TaskItem
@@ -943,16 +963,16 @@ export default function App() {
                       return (
                         <div
                           key={col.priority}
-                          className="bg-white border border-stone-200/90 rounded-xl p-4 space-y-3 flex flex-col"
+                          className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-xl p-4 space-y-3 flex flex-col"
                         >
-                          <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                          <div className="flex items-center justify-between border-b border-stone-100 dark:border-slate-800 pb-2.5">
                             <span
                               className={`text-xs font-semibold inline-flex items-center gap-1.5 ${col.accentText}`}
                             >
                               <Flag className="w-3.5 h-3.5" aria-hidden="true" />
                               <span>{col.title}</span>
                             </span>
-                            <span className="text-xs font-mono text-slate-500 tabular-nums">
+                            <span className="text-xs font-mono text-slate-500 dark:text-slate-400 tabular-nums">
                               {colTodos.length}
                             </span>
                           </div>
@@ -967,7 +987,7 @@ export default function App() {
                                 return (
                                   <li
                                     key={todo.id}
-                                    className="p-3 rounded-lg bg-stone-50/80 border border-stone-200/70 space-y-2"
+                                    className="p-3 rounded-lg bg-stone-50/80 dark:bg-slate-900/50 border border-stone-200/70 dark:border-slate-800 space-y-2"
                                   >
                                     <div className="flex items-start justify-between gap-2">
                                        <div className="flex items-start gap-2 min-w-0">
@@ -981,8 +1001,8 @@ export default function App() {
                                            }
                                            className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
                                              todo.completed
-                                               ? 'bg-emerald-600 border-emerald-600 text-white'
-                                               : 'border-slate-300 bg-white hover:border-slate-500'
+                                               ? 'bg-emerald-600 border-emerald-600 dark:border-emerald-500/60 text-white'
+                                               : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-slate-500 dark:hover:border-slate-400'
                                            }`}
                                          >
                                            {todo.completed && (
@@ -1004,10 +1024,10 @@ export default function App() {
                                                handleToggleTodo(todo.id);
                                              }
                                            }}
-                                           className={`text-xs font-medium cursor-pointer select-none break-words rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 ${
+                                           className={`text-xs font-medium cursor-pointer select-none break-words rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
                                              todo.completed
-                                               ? 'line-through text-slate-400'
-                                               : 'text-slate-900'
+                                               ? 'line-through text-slate-400 dark:text-slate-500'
+                                               : 'text-slate-900 dark:text-slate-100'
                                            }`}
                                          >
                                            {todo.title}
@@ -1018,7 +1038,7 @@ export default function App() {
                                            type="button"
                                            onClick={() => setEditingTodo(todo)}
                                            aria-label={`Edit '${todo.title}'`}
-                                           className="p-1 text-slate-400 hover:text-slate-800 rounded"
+                                           className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded"
                                          >
                                            <Edit3
                                              className="w-3.5 h-3.5"
@@ -1031,7 +1051,7 @@ export default function App() {
                                              handleDeleteTodo(todo.id)
                                            }
                                            aria-label={`Delete '${todo.title}'`}
-                                           className="p-1 text-slate-400 hover:text-red-600 rounded"
+                                           className="p-1 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded"
                                          >
                                            <Trash2
                                              className="w-3.5 h-3.5"
@@ -1040,8 +1060,8 @@ export default function App() {
                                          </button>
                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 pl-6">
-                                      <span className="font-medium text-slate-700">
+                                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 pl-6">
+                                      <span className="font-medium text-slate-700 dark:text-slate-300">
                                         {todo.category}
                                       </span>
                                       {dueInfo.label && (
@@ -1071,7 +1091,7 @@ export default function App() {
                               })}
                             </ul>
                           ) : (
-                            <p className="text-xs text-slate-400 py-6 text-center">
+                            <p className="text-xs text-slate-400 dark:text-slate-500 py-6 text-center">
                               No {col.title.toLowerCase()} tasks
                             </p>
                           )}
@@ -1081,17 +1101,17 @@ export default function App() {
                   </div>
                 )
               ) : (
-                <div className="bg-white border border-stone-200/90 rounded-xl p-10 text-center space-y-3">
-                  <div className="w-10 h-10 rounded-full bg-stone-100 text-slate-600 flex items-center justify-center mx-auto">
+                <div className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-xl p-10 text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center mx-auto">
                     <ListChecks className="w-5 h-5" aria-hidden="true" />
                   </div>
                   <div className="space-y-1 max-w-md mx-auto">
-                    <h2 className="text-base font-semibold text-slate-900 font-display">
+                    <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 font-display">
                       {todos.length === 0
                         ? 'Your task list is clear'
                         : 'No tasks match your current filters'}
                     </h2>
-                    <p className="text-xs text-slate-500 leading-relaxed">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                       {todos.length === 0
                         ? 'Add a new task above to start planning your day, or restore sample tasks to explore project lists and subtasks.'
                         : 'Try clearing your search query or switching back to All Tasks.'}
@@ -1103,14 +1123,14 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => taskInputRef.current?.focus()}
-                          className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                          className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
                         >
                           Create First Task
                         </button>
                         <button
                           type="button"
                           onClick={handleResetDemo}
-                          className="px-4 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                          className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 rounded-lg transition-colors whitespace-nowrap shrink-0"
                         >
                           Load Sample Tasks
                         </button>
@@ -1123,7 +1143,7 @@ export default function App() {
                           setActiveView('all');
                           setSearchQuery('');
                         }}
-                        className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                        className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap shrink-0"
                       >
                         Reset Filters
                       </button>
@@ -1220,6 +1240,8 @@ export default function App() {
         onRedo={executeRedo}
         canUndo={undoRedo.canUndo}
         canRedo={undoRedo.canRedo}
+        onCycleTheme={theme.cyclePreference}
+        themeLabel={THEME_LABELS[theme.preference]}
       />
 
       {/* JSON & CSV Import / Export Portability Modal */}

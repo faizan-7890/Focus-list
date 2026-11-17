@@ -621,7 +621,7 @@ function parseCsvRows(csvText: string): string[][] {
   return rows;
 }
 
-function normalizePriority(raw: unknown): Priority {
+export function normalizePriority(raw: unknown): Priority {
   const str = String(raw ?? '')
     .trim()
     .toLowerCase();
@@ -631,7 +631,7 @@ function normalizePriority(raw: unknown): Priority {
   return 'medium';
 }
 
-function normalizeCategory(raw: unknown): Category {
+export function normalizeCategory(raw: unknown): Category {
   const str = String(raw ?? '').trim();
   const match = VALID_CATEGORIES.find(
     (c) => c.toLowerCase() === str.toLowerCase()
@@ -639,7 +639,7 @@ function normalizeCategory(raw: unknown): Category {
   return match ?? 'Work';
 }
 
-function normalizeDueDate(raw: unknown): string {
+export function normalizeDueDate(raw: unknown): string {
   const str = String(raw ?? '').trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     return str;
@@ -647,7 +647,7 @@ function normalizeDueDate(raw: unknown): string {
   return '';
 }
 
-function normalizePomodoros(raw: unknown): number {
+export function normalizePomodoros(raw: unknown): number {
   const num = typeof raw === 'number' ? raw : Number(String(raw ?? '').trim());
   return Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
 }

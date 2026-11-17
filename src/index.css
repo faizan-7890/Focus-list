@@ -1,12 +1,19 @@
 @import "tailwindcss";
 
+/*
+ * Make the `dark:` variant class-driven (toggled by the `dark` class on <html>)
+ * instead of the Tailwind v4 default of following prefers-color-scheme only.
+ * This lets the in-app theme toggle force light/dark/system. See useTheme.ts.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
-    /* Core Color Tokens */
+    /* Core Color Tokens (light) */
     --color-canvas: #F4F4F0;
     --color-surface: #FFFFFF;
     --color-ink: #0F172A;
@@ -15,6 +22,22 @@
     --color-accent: #0F172A;
     --color-success: #059669;
     --color-danger: #DC2626;
+
+    color-scheme: light;
+  }
+
+  /* Core Color Tokens (dark) */
+  .dark {
+    --color-canvas: #020617;
+    --color-surface: #0F172A;
+    --color-ink: #E2E8F0;
+    --color-muted: #94A3B8;
+    --color-line: #1E293B;
+    --color-accent: #E2E8F0;
+    --color-success: #34D399;
+    --color-danger: #F87171;
+
+    color-scheme: dark;
   }
 
   body {

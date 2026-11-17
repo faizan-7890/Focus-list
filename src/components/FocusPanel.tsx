@@ -101,12 +101,12 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
               onClick={onToggleSound}
               title={soundEnabled ? 'Mute sound chimes' : 'Enable sound chimes'}
               aria-label={soundEnabled ? 'Mute sound chimes' : 'Enable sound chimes'}
-              className="p-1.5 text-slate-400 hover:text-white rounded-md transition-colors"
+              className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-white rounded-md transition-colors"
             >
               {soundEnabled ? (
                 <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
               ) : (
-                <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+                <VolumeX className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               )}
             </button>
 
@@ -121,7 +121,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
                 className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
                   mode === 'focus'
                     ? 'bg-slate-950 text-white'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-white'
                 }`}
               >
                 25m Focus
@@ -132,7 +132,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
                 className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
                   mode === 'break'
                     ? 'bg-slate-950 text-white'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-white'
                 }`}
               >
                 5m Break
@@ -147,7 +147,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
             type="button"
             onClick={onOpenZenMode}
             title="Open distraction-free Zen Mode"
-            className="absolute top-2.5 right-2.5 p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-slate-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-mono"
+            className="absolute top-2.5 right-2.5 p-1.5 text-slate-500 dark:text-slate-400 hover:text-emerald-400 hover:bg-slate-900 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-mono"
           >
             <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
             <span className="hidden sm:inline">Zen Mode</span>
@@ -166,7 +166,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
                 isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'
               }`}
             />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               {mode === 'focus' ? 'Deep work interval' : 'Short restorative break'}
             </p>
           </div>
@@ -175,7 +175,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
         {/* Active Focus Task Selector */}
         {currentTask ? (
           <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
               <label
                 htmlFor="focus-task-select"
                 className="flex items-center gap-1.5"
@@ -194,7 +194,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
               id="focus-task-select"
               value={currentTask.id}
               onChange={(e) => onSelectFocusTask(e.target.value)}
-              className="w-full text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-slate-500"
+              className="w-full text-xs bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-100 focus:outline-none focus:border-slate-500 dark:focus:border-slate-400"
             >
               {activeTodos.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -204,7 +204,7 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
             </select>
           </div>
         ) : (
-          <p className="text-xs text-slate-400 py-1">
+          <p className="text-xs text-slate-400 dark:text-slate-500 py-1">
             All tasks completed. Add a new task to begin a focus session.
           </p>
         )}
@@ -258,16 +258,16 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
       {/* Active Workload Breakdown by Project */}
       <section
         aria-labelledby="workload-breakdown-heading"
-        className="bg-white border border-stone-200/90 rounded-xl p-5 space-y-4"
+        className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-xl p-5 space-y-4"
       >
         <div className="flex items-center justify-between">
           <h2
             id="workload-breakdown-heading"
-            className="text-sm font-semibold text-slate-900 font-display"
+            className="text-sm font-semibold text-slate-900 dark:text-slate-100 font-display"
           >
             Active Workload by Project
           </h2>
-          <span className="text-xs font-mono text-slate-500 tabular-nums">
+          <span className="text-xs font-mono text-slate-500 dark:text-slate-400 tabular-nums">
             {stats.active} open
           </span>
         </div>
@@ -287,16 +287,16 @@ export const FocusPanel: React.FC<FocusPanelProps> = ({
                   onSelectView(isSelected ? 'all' : category)
                 }
                 className={`w-full text-left p-2 -mx-2 rounded-lg transition-colors ${
-                  isSelected ? 'bg-stone-100' : 'hover:bg-stone-50'
+                  isSelected ? 'bg-stone-100 dark:bg-slate-800' : 'hover:bg-stone-50 dark:hover:bg-slate-800/60'
                 }`}
               >
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-medium text-slate-800">{category}</span>
-                  <span className="font-mono text-slate-500 tabular-nums">
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{category}</span>
+                  <span className="font-mono text-slate-500 dark:text-slate-400 tabular-nums">
                     {count} {count === 1 ? 'task' : 'tasks'} · {pct}%
                   </span>
                 </div>
-                <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-stone-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${barClass} transition-transform duration-200 origin-left`}
                     style={{ transform: `scaleX(${pct / 100})` }}
