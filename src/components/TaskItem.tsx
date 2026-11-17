@@ -34,19 +34,22 @@ interface TaskItemProps {
 
 const PRIORITY_META: Record<
   Priority,
-  { label: string; textClass: string }
+  { label: string; textClass: string; flagClass: string }
 > = {
   high: {
     label: 'High priority',
     textClass: 'text-red-700 dark:text-red-400 font-medium',
+    flagClass: 'fill-current',
   },
   medium: {
     label: 'Medium priority',
     textClass: 'text-amber-700 dark:text-amber-400',
+    flagClass: '',
   },
   low: {
     label: 'Low priority',
     textClass: 'text-slate-500 dark:text-slate-400',
+    flagClass: '',
   },
 };
 
@@ -81,7 +84,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
   return (
     <li className="bg-white dark:bg-slate-900 border-b last:border-b-0 border-slate-200 dark:border-slate-700 px-4 py-3.5 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-3">
         {/* Left: Checkbox + Title + Unboxed Metadata */}
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <button
@@ -90,7 +93,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             aria-checked={todo.completed}
             aria-label={`Toggle '${todo.title}'`}
             onClick={() => onToggle(todo.id)}
-            className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
+            className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 ${
               todo.completed
                 ? 'bg-emerald-600 border-emerald-600 dark:border-emerald-500/60 text-white'
                 : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:border-slate-500 dark:hover:border-slate-400'
@@ -111,7 +114,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                     onToggle(todo.id);
                   }
                 }}
-                className={`text-sm sm:text-base font-medium cursor-pointer select-none break-words rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
+                className={`text-sm sm:text-base font-medium cursor-pointer select-none break-words rounded ${
                   todo.completed
                     ? 'line-through text-slate-400 dark:text-slate-500'
                     : 'text-slate-900 dark:text-slate-100'
@@ -136,7 +139,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               <span className="font-medium text-slate-700 dark:text-slate-300">{todo.category}</span>
               <span aria-hidden="true">·</span>
               <span className={`inline-flex items-center gap-1 ${priorityInfo.textClass}`}>
-                <Flag className="w-3 h-3" aria-hidden="true" />
+                <Flag className={`w-3 h-3 ${priorityInfo.flagClass}`} aria-hidden="true" />
                 <span>{priorityInfo.label}</span>
               </span>
 
@@ -197,7 +200,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         </div>
 
         {/* Right: Action Buttons */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 self-end sm:self-auto">
           {canReorder && (
             <>
               <button
@@ -205,7 +208,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 disabled={isFirst}
                 onClick={() => onMoveOrder(todo.id, 'up')}
                 aria-label={`Move '${todo.title}' up`}
-                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                className="icon-btn text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none"
               >
                 <ArrowUp className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
@@ -214,7 +217,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 disabled={isLast}
                 onClick={() => onMoveOrder(todo.id, 'down')}
                 aria-label={`Move '${todo.title}' down`}
-                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                className="icon-btn text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none"
               >
                 <ArrowDown className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
@@ -224,7 +227,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             type="button"
             onClick={() => onEdit(todo)}
             aria-label={`Edit '${todo.title}'`}
-            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+            className="icon-btn text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <Edit3 className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -232,7 +235,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             type="button"
             onClick={() => onDelete(todo.id)}
             aria-label={`Delete '${todo.title}'`}
-            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md transition-colors"
+            className="icon-btn text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
           >
             <Trash2 className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -274,7 +277,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                           onToggleSubtask(todo.id, st.id);
                         }
                       }}
-                      className={`cursor-pointer select-none truncate rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
+                      className={`cursor-pointer select-none truncate rounded ${
                         st.completed
                           ? 'line-through text-slate-400 dark:text-slate-500'
                           : 'text-slate-700 dark:text-slate-300'
@@ -287,7 +290,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                     type="button"
                     onClick={() => onDeleteSubtask(todo.id, st.id)}
                     aria-label={`Remove subtask '${st.title}'`}
-                    className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded"
+                    className="hit-area text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded"
                   >
                     <Trash2 className="w-3 h-3" aria-hidden="true" />
                   </button>

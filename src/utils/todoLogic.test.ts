@@ -16,6 +16,8 @@ import {
   moveTodoOrder,
   formatTimerDisplay,
   getTomorrowIsoDate,
+  getNextWeekendIsoDate,
+  getNextMondayIsoDate,
   exportTodosToJson,
   exportTodosToCsv,
   parseImportedTasks,
@@ -354,4 +356,25 @@ test('moveTodoOrder moves relative to the visible list when a filter hides tasks
   // Already first among visible tasks: nothing to swap with
   const unchanged = moveTodoOrder(moved, workC.id, 'up', workIds);
   assert.equal(unchanged, moved);
+});
+
+// 2026-11-16 is a Monday, so 11-17 Tue ... 11-21 Sat, 11-22 Sun.
+test('getNextWeekendIsoDate returns the next Saturday strictly after today', () => {
+  assert.equal(getNextWeekendIsoDate('2026-11-16'), '2026-11-21'); // Mon
+  assert.equal(getNextWeekendIsoDate('2026-11-17'), '2026-11-21'); // Tue
+  assert.equal(getNextWeekendIsoDate('2026-11-20'), '2026-11-21'); // Fri
+  assert.equal(getNextWeekendIsoDate('2026-11-21'), '2026-11-28'); // Sat -> next week
+  assert.equal(getNextWeekendIsoDate('2026-11-22'), '2026-11-28'); // Sun
+});
+
+test('getNextMondayIsoDate returns the next Monday strictly after today', () => {
+  assert.equal(getNextMondayIsoDate('2026-11-16'), '2026-11-23'); // Mon -> +7
+  assert.equal(getNextMondayIsoDate('2026-11-17'), '2026-11-23'); // Tue
+  assert.equal(getNextMondayIsoDate('2026-11-21'), '2026-11-23'); // Sat
+  assert.equal(getNextMondayIsoDate('2026-11-22'), '2026-11-23'); // Sun
+});
+
+test('date presets roll over month and year boundaries', () => {
+  assert.equal(getNextMondayIsoDate('2026-12-31'), '2027-01-04'); // Thu
+  assert.equal(getNextWeekendIsoDate('2026-12-31'), '2027-01-02');
 });

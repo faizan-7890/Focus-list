@@ -22,6 +22,7 @@
     --color-accent: #0F172A;
     --color-success: #059669;
     --color-danger: #DC2626;
+    --color-focus: #6366F1;
 
     color-scheme: light;
   }
@@ -36,6 +37,7 @@
     --color-accent: #E2E8F0;
     --color-success: #34D399;
     --color-danger: #F87171;
+    --color-focus: #818CF8;
 
     color-scheme: dark;
   }
@@ -47,6 +49,17 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /*
+   * One focus ring for every interactive element, so keyboard focus is never
+   * invisible. Indigo reads on both the light surfaces and the always-dark
+   * timer/banner cards (>= 3:1 non-text contrast). Per-element
+   * `focus-visible:outline-*` utilities were removed in favour of this.
+   */
+  :where(a, button, select, summary, [role='button'], [role='checkbox'], [tabindex]):focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
   }
@@ -54,6 +67,62 @@
   .font-mono {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Icon-only button with a comfortable hit area: 36px, 40px on touch. */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    transition: color 150ms, background-color 150ms;
+  }
+  .icon-btn-sm {
+    width: 2rem;
+    height: 2rem;
+  }
+  @media (pointer: coarse) {
+    .icon-btn {
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+    .icon-btn-sm {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+  }
+
+  /*
+   * Grow the clickable area of a small control without changing its layout:
+   * an invisible pseudo-element extends the hit box by 6px on every side.
+   */
+  .hit-area {
+    position: relative;
+  }
+  .hit-area::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+
+  .toast-enter {
+    animation: toast-in 180ms ease-out;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -137,7 +137,7 @@ export function migrateTodos(todos: TodoItem[], fromVersion: number): TodoItem[]
  */
 export function parsePersistedState(
   rawJson: string
-): { todos: TodoItem[]; version: number } | null {
+): { todos: TodoItem[]; version: number; rawCount: number } | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawJson);
@@ -157,12 +157,16 @@ export function parsePersistedState(
       typeof envelope.version === 'number' && Number.isFinite(envelope.version)
         ? envelope.version
         : 1;
-    return { todos: sanitizeTodos(envelope.todos), version };
+    return {
+      todos: sanitizeTodos(envelope.todos),
+      version,
+      rawCount: (envelope.todos as unknown[]).length,
+    };
   }
 
   // Tolerated legacy shape: a bare array written under the current key.
   if (Array.isArray(parsed)) {
-    return { todos: sanitizeTodos(parsed), version: 1 };
+    return { todos: sanitizeTodos(parsed), version: 1, rawCount: parsed.length };
   }
 
   return null;
@@ -190,8 +194,10 @@ function getStorage(): StorageLike | null {
  * then the legacy bare-array key (migrating it forward and clearing it), then
  * the provided fallback (the demo seed). Never throws.
  */
-export function loadTodos(fallback: () => TodoItem[]): LoadResult {
-  const storage = getStorage();
+export function loadTodos(
+  fallback: () => TodoItem[],
+  storage: StorageLike | null = getStorage()
+): LoadResult {
   if (!storage) {
     return { todos: fallback(), source: 'fallback', recoveredFromError: false };
   }
@@ -206,20 +212,21 @@ export function loadTodos(fallback: () => TodoItem[]): LoadResult {
 
   if (rawCurrent) {
     const parsed = parsePersistedState(rawCurrent);
-    if (parsed && parsed.todos.length > 0) {
+    // A stored list that was genuinely empty (the user cleared everything) is
+    // valid state and must stay empty. A list that had entries but none
+    // survived sanitizing is corruption, not an empty workspace.
+    if (parsed && (parsed.todos.length > 0 || parsed.rawCount === 0)) {
       if (parsed.version < SCHEMA_VERSION) {
         const migrated = migrateTodos(parsed.todos, parsed.version);
         return { todos: migrated, source: 'migrated-version', recoveredFromError: false };
       }
       return { todos: parsed.todos, source: 'current', recoveredFromError: false };
     }
-    // Stored data existed but was unreadable/empty — fall through, flag it.
-    if (!parsed) {
-      // 2. Try legacy before giving up on a corrupt current payload.
-      const legacy = tryLoadLegacy(storage);
-      if (legacy) return legacy;
-      return { todos: fallback(), source: 'fallback', recoveredFromError: true };
-    }
+    // Stored data existed but was unreadable — try the legacy key before
+    // giving up, and flag the recovery.
+    const legacy = tryLoadLegacy(storage);
+    if (legacy) return legacy;
+    return { todos: fallback(), source: 'fallback', recoveredFromError: true };
   }
 
   // 2. Legacy unversioned key.
@@ -240,6 +247,7 @@ function tryLoadLegacy(storage: StorageLike): LoadResult | null {
   if (!rawLegacy) return null;
 
   const parsed = parsePersistedState(rawLegacy);
+  // An empty legacy list carries no data worth migrating over a fresh seed.
   if (!parsed || parsed.todos.length === 0) return null;
 
   const migrated = migrateTodos(parsed.todos, parsed.version);

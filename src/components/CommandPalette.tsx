@@ -6,6 +6,7 @@ import {
   Download,
   Folder,
   Kanban,
+  Keyboard,
   Layers,
   LayoutList,
   Moon,
@@ -40,6 +41,7 @@ export interface CommandPaletteProps {
   canUndo?: boolean;
   canRedo?: boolean;
   onCycleTheme?: () => void;
+  onOpenShortcuts?: () => void;
   themeLabel?: string;
 }
 
@@ -74,6 +76,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   canUndo = false,
   canRedo = false,
   onCycleTheme,
+  onOpenShortcuts,
   themeLabel,
 }) => {
   const [query, setQuery] = useState('');
@@ -136,6 +139,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onSelect: () => {
           onClose();
           onRedo();
+        },
+      });
+    }
+
+    if (onOpenShortcuts) {
+      base.push({
+        id: 'cmd-shortcuts',
+        label: 'Keyboard Shortcuts',
+        group: 'Quick Actions',
+        keywords: 'keyboard shortcuts keys help cheatsheet hotkeys',
+        shortcut: '?',
+        icon: <Keyboard className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
+        onSelect: () => {
+          onClose();
+          onOpenShortcuts();
         },
       });
     }
@@ -398,6 +416,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onResetDemo,
     onToggleTodo,
     onCycleTheme,
+    onOpenShortcuts,
     themeLabel,
   ]);
 
@@ -497,7 +516,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close command palette"
-            className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
+            className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>

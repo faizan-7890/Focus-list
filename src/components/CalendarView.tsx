@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, Flag, Plus } from 'lucide-react';
 import type { TodoItem } from '../utils/todoLogic';
 import {
   WEEKDAY_LABELS,
@@ -45,6 +45,16 @@ function getChipClass(todo: TodoItem, todayDate: string): string {
   return 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700';
 }
 
+type ChipMarker = 'overdue' | 'high' | null;
+
+/** Non-color cue for chips, so overdue/high priority don't rely on tint alone. */
+function getChipMarker(todo: TodoItem, todayDate: string): ChipMarker {
+  if (todo.completed) return null;
+  if (todo.dueDate < todayDate) return 'overdue';
+  if (todo.priority === 'high') return 'high';
+  return null;
+}
+
 export const CalendarView: React.FC<CalendarViewProps> = ({
   todos,
   todayDate,
@@ -84,7 +94,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             type="button"
             onClick={() => goToMonth(shiftMonth(visibleMonth, -1))}
             aria-label="Previous month"
-            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+            className="icon-btn text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-100 dark:hover:bg-slate-800"
           >
             <ChevronLeft className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -99,7 +109,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             type="button"
             onClick={() => goToMonth(shiftMonth(visibleMonth, 1))}
             aria-label="Next month"
-            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+            className="icon-btn text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-100 dark:hover:bg-slate-800"
           >
             <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -147,7 +157,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   onClick={() => onAddTodoOnDate(date)}
                   aria-label={`Add task on ${formatFullDate(date)}`}
                   title="Add task on this day"
-                  className="inline-flex items-center justify-center w-5 h-5 rounded text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-200 dark:hover:bg-slate-700 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100"
+                  className="hit-area inline-flex items-center justify-center w-5 h-5 rounded text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-200 dark:hover:bg-slate-700 transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
@@ -175,13 +185,31 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         onClick={() => onEditTodo(todo)}
                         title={todo.title}
                         aria-label={`Edit '${todo.title}'${
-                          todo.completed ? ' (completed)' : ''
+                          todo.completed
+                            ? ' (completed)'
+                            : getChipMarker(todo, todayDate) === 'overdue'
+                            ? ' (overdue)'
+                            : getChipMarker(todo, todayDate) === 'high'
+                            ? ' (high priority)'
+                            : ''
                         }`}
-                        className={`block w-full truncate text-left text-[11px] leading-tight px-1 sm:px-1.5 py-0.5 rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${getChipClass(
+                        className={`block w-full truncate text-left text-[11px] leading-tight px-1 sm:px-1.5 py-0.5 rounded transition-colors ${getChipClass(
                           todo,
                           todayDate
                         )}`}
                       >
+                        {getChipMarker(todo, todayDate) === 'overdue' && (
+                          <AlertCircle
+                            className="inline w-3 h-3 mr-0.5 -mt-0.5"
+                            aria-hidden="true"
+                          />
+                        )}
+                        {getChipMarker(todo, todayDate) === 'high' && (
+                          <Flag
+                            className="inline w-3 h-3 mr-0.5 -mt-0.5 fill-current"
+                            aria-hidden="true"
+                          />
+                        )}
                         {todo.title}
                       </button>
                     </li>

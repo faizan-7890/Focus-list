@@ -68,6 +68,33 @@ export function getTomorrowIsoDate(todayDate: string): string {
   return getTodayIsoDate(base);
 }
 
+function parseIsoDateParts(isoDate: string): Date {
+  const parts = isoDate.split('-').map(Number);
+  return parts.length === 3 && !parts.some(isNaN)
+    ? new Date(parts[0], parts[1] - 1, parts[2])
+    : new Date();
+}
+
+/**
+ * The next Saturday strictly after `todayDate` (so on a Saturday it returns the
+ * following week's, and on a Sunday the coming Saturday). "Strictly after"
+ * keeps the quick-pick distinct from the Today / Tomorrow presets.
+ */
+export function getNextWeekendIsoDate(todayDate: string): string {
+  const base = parseIsoDateParts(todayDate);
+  const daysAhead = (6 - base.getDay() + 7) % 7 || 7;
+  base.setDate(base.getDate() + daysAhead);
+  return getTodayIsoDate(base);
+}
+
+/** The next Monday strictly after `todayDate` (a Monday returns +7 days). */
+export function getNextMondayIsoDate(todayDate: string): string {
+  const base = parseIsoDateParts(todayDate);
+  const daysAhead = (8 - base.getDay()) % 7 || 7;
+  base.setDate(base.getDate() + daysAhead);
+  return getTodayIsoDate(base);
+}
+
 export function formatTimerDisplay(totalSeconds: number): string {
   const clamped = Math.max(0, Math.floor(totalSeconds));
   const mins = Math.floor(clamped / 60);

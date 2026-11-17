@@ -76,6 +76,7 @@
 | `Ctrl + K` / `Cmd + K` | Global (anywhere in the app) | Open or close the Command Palette |
 | `N` | Workspace (when no input is focused) | Focus the *New Task* title input |
 | `/` | Workspace (when no input is focused) | Focus the *Search tasks* input |
+| `?` | Workspace (when no input is focused) | Open the keyboard shortcuts cheatsheet |
 | `Enter` | Inside *New Task* or *Subtask* input | Submit and save the task or subtask |
 | `ArrowUp` / `ArrowDown` | Inside Command Palette | Move selection highlight up or down |
 | `Enter` | Inside Command Palette | Execute the highlighted command |
@@ -120,6 +121,7 @@ Core state transformations, filtering, sorting, and serialization are decoupled 
 - `src/utils/todoLogic.test.ts`: Unit test suite (`node:test` + `node:assert/strict`) covering task creation, Pomodoro tracking, subtask operations, reordering, filtering, stats, and JSON/CSV round-trip import/export.
 - `src/hooks/useFocusTimer.ts`: Custom React hook managing persistent timestamp-based countdowns, live `document.title` updates, browser notifications, and sound triggers.
 - `src/hooks/useTheme.ts`: Theme hook managing the Light/Dark/System preference — persistence, live OS-change tracking, and applying the `dark` class + `color-scheme` to `<html>`.
+- `src/components/ShortcutsModal.tsx`: The `?` keyboard shortcuts cheatsheet dialog.
 - `src/utils/persistence.ts`: Versioned `localStorage` layer — the `{ version, todos }` envelope, ordered migrations, per-field sanitization, and legacy-key recovery.
 - `src/utils/persistence.test.ts`: Unit tests for sanitization, envelope/legacy parsing, and migrations.
 - `src/utils/soundEffects.ts`: Zero-dependency Web Audio API synthesizer generating harmonic chimes for timer start, interval completion, and task completion.

@@ -320,7 +320,7 @@ export const ZenModeModal: React.FC<ZenModeModalProps> = ({
                             onToggleSubtask(todo.id, st.id);
                           }
                         }}
-                        className={`cursor-pointer select-none rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-400 ${
+                        className={`cursor-pointer select-none rounded ${
                           st.completed ? 'line-through text-slate-500' : 'text-slate-200'
                         }`}
                       >

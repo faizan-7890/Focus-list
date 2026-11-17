@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { AlertCircle, Calendar, FileText, Plus } from 'lucide-react';
 import {
+  getNextMondayIsoDate,
+  getNextWeekendIsoDate,
   getTomorrowIsoDate,
   type Category,
   type CreateTodoInput,
@@ -22,6 +24,15 @@ const PRIORITIES: Array<{ value: Priority; label: string }> = [
   { value: 'high', label: 'High Priority' },
 ];
 
+function describeDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export const TaskInput: React.FC<TaskInputProps> = ({
   onAddTodo,
   todayDate,
@@ -38,7 +49,14 @@ export const TaskInput: React.FC<TaskInputProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const tomorrowDate = getTomorrowIsoDate(todayDate);
+  // Quick-pick presets. Dropping any whose date repeats an earlier preset keeps
+  // the row free of duplicates (e.g. "Weekend" on a Friday is just Tomorrow).
+  const presets = [
+    { label: 'Today', date: todayDate },
+    { label: 'Tomorrow', date: getTomorrowIsoDate(todayDate) },
+    { label: 'Weekend', date: getNextWeekendIsoDate(todayDate) },
+    { label: 'Next week', date: getNextMondayIsoDate(todayDate) },
+  ].filter((p, i, all) => all.findIndex((q) => q.date === p.date) === i);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +87,7 @@ export const TaskInput: React.FC<TaskInputProps> = ({
       className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-3.5"
     >
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="flex-1 flex items-center gap-2.5">
+        <div className="flex-1 flex items-center gap-2.5 rounded-lg p-1 -m-1 focus-within:ring-2 focus-within:ring-indigo-500/40">
           <span
             aria-hidden="true"
             className="w-6 h-6 rounded-md bg-stone-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center font-mono text-xs shrink-0"
@@ -107,7 +125,7 @@ export const TaskInput: React.FC<TaskInputProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100"
+            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <Plus className="w-4 h-4" aria-hidden="true" />
             <span>Add Task</span>
@@ -205,29 +223,23 @@ export const TaskInput: React.FC<TaskInputProps> = ({
         </div>
 
         {/* Quick Schedule Preset Buttons */}
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setDueDate(todayDate)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-              dueDate === todayDate
-                ? 'bg-slate-900 text-white dark:bg-slate-700'
-                : 'bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
-            }`}
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            onClick={() => setDueDate(tomorrowDate)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-              dueDate === tomorrowDate
-                ? 'bg-slate-900 text-white dark:bg-slate-700'
-                : 'bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
-            }`}
-          >
-            Tomorrow
-          </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {presets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => setDueDate(preset.date)}
+              title={describeDate(preset.date)}
+              aria-pressed={dueDate === preset.date}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+                dueDate === preset.date
+                  ? 'bg-slate-900 text-white dark:bg-slate-700'
+                  : 'bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
           {dueDate && (
             <button
               type="button"

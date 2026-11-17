@@ -203,7 +203,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   type="button"
                   onClick={() => onSelectView(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-slate-900 text-white dark:bg-slate-700'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
@@ -240,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={cat.id}
                   type="button"
                   onClick={() => onSelectView(cat.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 dark:focus-visible:outline-slate-100 ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-slate-900 text-white dark:bg-slate-700'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
