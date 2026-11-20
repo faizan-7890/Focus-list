@@ -99,7 +99,10 @@
 
   /*
    * Grow the clickable area of a small control without changing its layout:
-   * an invisible pseudo-element extends the hit box by 6px on every side.
+   * an invisible pseudo-element extends the hit box by 4px on every side.
+   * Kept at 4px so it stays inside the surrounding padding/gaps (the search
+   * field's right padding, the calendar cell's gap) and never covers a
+   * neighbouring control.
    */
   .hit-area {
     position: relative;
@@ -107,7 +110,7 @@
   .hit-area::after {
     content: '';
     position: absolute;
-    inset: -6px;
+    inset: -4px;
   }
 
   .toast-enter {

@@ -70,7 +70,16 @@ import { useFocusTimer } from './hooks/useFocusTimer';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useTheme, type ThemePreference } from './hooks/useTheme';
 import { playTaskCompleteSound } from './utils/soundEffects';
-import { clearLegacyStorage, loadTodos, saveTodos } from './utils/persistence';
+import {
+  CORRUPT_BACKUP_KEY,
+  LEGACY_STORAGE_KEY,
+  clearLegacyStorage,
+  loadTodos,
+  mergeTodos,
+  parsePersistedState,
+  migrateTodos,
+  saveTodos,
+} from './utils/persistence';
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   light: 'Light',
@@ -136,7 +145,18 @@ const BOARD_COLUMNS: Array<{
 ];
 
 export default function App() {
-  const todayDate = useMemo(() => getTodayIsoDate(), []);
+  // Kept in state and refreshed so a tab left open past midnight doesn't keep
+  // using yesterday's date for "Today", presets and due-date labels.
+  const [todayDate, setTodayDate] = useState(() => getTodayIsoDate());
+  useEffect(() => {
+    const refresh = () => setTodayDate(getTodayIsoDate());
+    const intervalId = window.setInterval(refresh, 60_000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
 
   const formattedBannerDate = useMemo(() => {
     const parts = todayDate.split('-').map(Number);
@@ -155,9 +175,13 @@ export default function App() {
   // Load through the versioned persistence layer: reads the current envelope,
   // migrates older/legacy data forward, sanitizes every field, and falls back
   // to the demo seed only when nothing usable is stored. See utils/persistence.
-  const [todos, setTodos] = useState<TodoItem[]>(() =>
-    loadTodos(() => getInitialDemoTodos(todayDate)).todos
+  const [initialLoad] = useState(() =>
+    loadTodos(() => getInitialDemoTodos(todayDate))
   );
+  const [todos, setTodos] = useState<TodoItem[]>(initialLoad.todos);
+  // True while legacy (v1) data has been read but not yet safely written to
+  // the versioned key; the legacy copy is only removed once that save succeeds.
+  const pendingLegacyClearRef = useRef(initialLoad.source === 'migrated-legacy');
 
   const [activeView, setActiveView] = useState<ViewFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -197,13 +221,25 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    saveTodos(todos);
+    if (saveTodos(todos) && pendingLegacyClearRef.current) {
+      clearLegacyStorage();
+      pendingLegacyClearRef.current = false;
+    }
   }, [todos]);
 
-  // Once data is persisted under the versioned key, drop the legacy key so a
-  // stale v1 copy can never shadow newer state on a later load.
+  // A tab still running the old build keeps writing the legacy key. Merge
+  // those writes in as they happen instead of losing them.
   useEffect(() => {
-    clearLegacyStorage();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== LEGACY_STORAGE_KEY || !e.newValue) return;
+      const parsed = parsePersistedState(e.newValue);
+      if (!parsed) return;
+      const incoming = migrateTodos(parsed.todos, parsed.version);
+      pendingLegacyClearRef.current = true;
+      setTodos((prev) => mergeTodos(prev, incoming));
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const theme = useTheme();
@@ -215,6 +251,14 @@ export default function App() {
       setStatusBanner((prev) => (prev === msg ? null : prev));
     }, 3500);
   };
+
+  useEffect(() => {
+    if (initialLoad.recoveredFromError) {
+      setStatusBanner(
+        `Some saved tasks couldn't be read. The original data was kept in localStorage under "${CORRUPT_BACKUP_KEY}".`
+      );
+    }
+  }, [initialLoad]);
 
   const showUndoableNotice = (msg: string) => {
     setStatusBanner(msg);
@@ -287,6 +331,8 @@ export default function App() {
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        // Never stack the palette under the shortcuts dialog.
+        setIsShortcutsOpen(false);
         setIsCommandPaletteOpen((prev) => !prev);
         return;
       }
@@ -297,7 +343,8 @@ export default function App() {
         !isShortcutsOpen &&
         !portabilityModalState.isOpen &&
         !editingTodo &&
-        !newTaskDate
+        !newTaskDate &&
+        !isZenModeOpen
       ) {
         if (e.key === '/') {
           e.preventDefault();
@@ -316,6 +363,7 @@ export default function App() {
   }, [
     isCommandPaletteOpen,
     isShortcutsOpen,
+    isZenModeOpen,
     portabilityModalState.isOpen,
     editingTodo,
     newTaskDate,
@@ -604,7 +652,11 @@ export default function App() {
           }
         />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1160px] w-full mx-auto">
+        <main
+          className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-[1160px] w-full mx-auto ${
+            statusBanner ? 'pb-24 sm:pb-24 lg:pb-24' : ''
+          }`}
+        >
           <div className="flex flex-col xl:flex-row items-start gap-6">
             {/* Primary Center Workspace Column */}
             <div className="flex-1 w-full min-w-0 space-y-5">
@@ -1011,32 +1063,6 @@ export default function App() {
                                            {todo.title}
                                          </span>
                                        </div>
-                                       <div className="flex items-center gap-1 shrink-0">
-                                         <button
-                                           type="button"
-                                           onClick={() => setEditingTodo(todo)}
-                                           aria-label={`Edit '${todo.title}'`}
-                                           className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-stone-200 dark:hover:bg-slate-700"
-                                         >
-                                           <Edit3
-                                             className="w-3.5 h-3.5"
-                                             aria-hidden="true"
-                                           />
-                                         </button>
-                                         <button
-                                           type="button"
-                                           onClick={() =>
-                                             handleDeleteTodo(todo.id)
-                                           }
-                                           aria-label={`Delete '${todo.title}'`}
-                                           className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
-                                         >
-                                           <Trash2
-                                             className="w-3.5 h-3.5"
-                                             aria-hidden="true"
-                                           />
-                                         </button>
-                                       </div>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 pl-6">
                                       <span className="font-medium text-slate-700 dark:text-slate-300">
@@ -1063,6 +1089,32 @@ export default function App() {
                                           </span>
                                         </>
                                       )}
+                                       <div className="flex items-center gap-1 shrink-0 ml-auto -mr-1">
+                                         <button
+                                           type="button"
+                                           onClick={() => setEditingTodo(todo)}
+                                           aria-label={`Edit '${todo.title}'`}
+                                           className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-stone-200 dark:hover:bg-slate-700"
+                                         >
+                                           <Edit3
+                                             className="w-3.5 h-3.5"
+                                             aria-hidden="true"
+                                           />
+                                         </button>
+                                         <button
+                                           type="button"
+                                           onClick={() =>
+                                             handleDeleteTodo(todo.id)
+                                           }
+                                           aria-label={`Delete '${todo.title}'`}
+                                           className="icon-btn icon-btn-sm text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
+                                         >
+                                           <Trash2
+                                             className="w-3.5 h-3.5"
+                                             aria-hidden="true"
+                                           />
+                                         </button>
+                                       </div>
                                     </div>
                                   </li>
                                 );
