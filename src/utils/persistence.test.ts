@@ -6,11 +6,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  CORRUPT_BACKUP_KEY,
   LEGACY_STORAGE_KEY,
   SCHEMA_VERSION,
   STORAGE_KEY,
   loadTodos,
   migrateTodos,
+  saveTodos,
   parsePersistedState,
   sanitizeTodo,
   sanitizeTodos,
@@ -193,4 +195,51 @@ test('loadTodos does not treat a list of only-invalid tasks as an empty workspac
   const result = loadTodos(seed, storage);
   assert.equal(result.source, 'fallback');
   assert.equal(result.recoveredFromError, true);
+});
+
+test('loadTodos keeps an empty legacy workspace empty (no demo reseed)', () => {
+  const result = loadTodos(seed, memoryStorage({ [LEGACY_STORAGE_KEY]: '[]' }));
+  assert.deepEqual(result.todos, []);
+  assert.equal(result.source, 'migrated-legacy');
+});
+
+test('loadTodos merges legacy writes made after migration instead of ignoring them', () => {
+  const storage = memoryStorage({
+    [STORAGE_KEY]: JSON.stringify({
+      version: SCHEMA_VERSION,
+      todos: [baseTodo({ id: 'a', title: 'In v2', order: 1 })],
+    }),
+    // Written later by a tab still on the old build.
+    [LEGACY_STORAGE_KEY]: JSON.stringify([
+      baseTodo({ id: 'a', title: 'In v2 (edited in old tab)', order: 1 }),
+      baseTodo({ id: 'b', title: 'Added in old tab', order: 2 }),
+    ]),
+  });
+  const result = loadTodos(seed, storage);
+  assert.equal(result.source, 'migrated-legacy');
+  assert.deepEqual(
+    result.todos.map((t) => t.title).sort(),
+    ['Added in old tab', 'In v2 (edited in old tab)']
+  );
+});
+
+test('loadTodos backs up an unreadable payload before it can be overwritten', () => {
+  const storage = memoryStorage({ [STORAGE_KEY]: '{"version":2,"todos":[{"tit' });
+  const result = loadTodos(seed, storage);
+  assert.equal(result.recoveredFromError, true);
+  assert.equal(storage.getItem(CORRUPT_BACKUP_KEY), '{"version":2,"todos":[{"tit');
+});
+
+test('saveTodos reports failure instead of swallowing it silently', () => {
+  const full = {
+    getItem: () => null,
+    setItem: () => {
+      throw new Error('QuotaExceededError');
+    },
+    removeItem: () => {},
+  };
+  assert.equal(saveTodos([baseTodo()], full), false);
+  const ok = memoryStorage();
+  assert.equal(saveTodos([baseTodo()], ok), true);
+  assert.ok(ok.getItem(STORAGE_KEY));
 });

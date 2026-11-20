@@ -16,6 +16,7 @@
  */
 
 import {
+  applyImportedTodos,
   normalizeCategory,
   normalizeDueDate,
   normalizePomodoros,
@@ -32,6 +33,9 @@ export const STORAGE_KEY = 'focuslist_state_v2';
 
 /** Legacy key: an unversioned bare `TodoItem[]`. Read once, then migrated. */
 export const LEGACY_STORAGE_KEY = 'focuslist_todos_v1';
+
+/** Where an unreadable payload is copied before it can be overwritten. */
+export const CORRUPT_BACKUP_KEY = 'focuslist_state_v2_corrupt';
 
 export interface PersistedState {
   version: number;
@@ -172,7 +176,7 @@ export function parsePersistedState(
   return null;
 }
 
-interface StorageLike {
+export interface StorageLike {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
@@ -216,16 +220,36 @@ export function loadTodos(
     // valid state and must stay empty. A list that had entries but none
     // survived sanitizing is corruption, not an empty workspace.
     if (parsed && (parsed.todos.length > 0 || parsed.rawCount === 0)) {
-      if (parsed.version < SCHEMA_VERSION) {
-        const migrated = migrateTodos(parsed.todos, parsed.version);
-        return { todos: migrated, source: 'migrated-version', recoveredFromError: false };
+      const current =
+        parsed.version < SCHEMA_VERSION
+          ? migrateTodos(parsed.todos, parsed.version)
+          : parsed.todos;
+      // The legacy key is only removed after a successful migration, so if it
+      // is present now, a tab still running the old build wrote it after that.
+      // Merge it in rather than ignoring (and later deleting) those edits.
+      const legacy = tryLoadLegacy(storage);
+      if (legacy) {
+        return {
+          todos: mergeTodos(current, legacy.todos),
+          source: 'migrated-legacy',
+          recoveredFromError: false,
+        };
       }
-      return { todos: parsed.todos, source: 'current', recoveredFromError: false };
+      return {
+        todos: current,
+        source: parsed.version < SCHEMA_VERSION ? 'migrated-version' : 'current',
+        recoveredFromError: false,
+      };
     }
-    // Stored data existed but was unreadable — try the legacy key before
-    // giving up, and flag the recovery.
+    // Stored data existed but was unreadable. Keep a copy of the raw bytes
+    // before the next save overwrites them, then try the legacy key.
+    try {
+      storage.setItem(CORRUPT_BACKUP_KEY, rawCurrent);
+    } catch {
+      // Best effort; nothing else can be done here.
+    }
     const legacy = tryLoadLegacy(storage);
-    if (legacy) return legacy;
+    if (legacy) return { ...legacy, recoveredFromError: true };
     return { todos: fallback(), source: 'fallback', recoveredFromError: true };
   }
 
@@ -247,28 +271,49 @@ function tryLoadLegacy(storage: StorageLike): LoadResult | null {
   if (!rawLegacy) return null;
 
   const parsed = parsePersistedState(rawLegacy);
-  // An empty legacy list carries no data worth migrating over a fresh seed.
-  if (!parsed || parsed.todos.length === 0) return null;
+  if (!parsed) return null;
+  // A legacy list that was genuinely empty means the user cleared everything;
+  // keep it empty instead of re-seeding the demo tasks.
+  if (parsed.todos.length === 0) {
+    if (parsed.rawCount !== 0) return null;
+    return { todos: [], source: 'migrated-legacy', recoveredFromError: false };
+  }
 
   const migrated = migrateTodos(parsed.todos, parsed.version);
   return { todos: migrated, source: 'migrated-legacy', recoveredFromError: false };
 }
 
-/** Persist the workspace under the versioned key. Never throws. */
-export function saveTodos(todos: TodoItem[]): void {
-  const storage = getStorage();
-  if (!storage) return;
+/**
+ * Merge `incoming` tasks into `base`: tasks with a matching id take the
+ * incoming version, new ones are added. Nothing in `base` is dropped.
+ */
+export function mergeTodos(base: TodoItem[], incoming: TodoItem[]): TodoItem[] {
+  return applyImportedTodos(base, incoming, 'merge');
+}
+
+/**
+ * Persist the workspace under the versioned key. Never throws; returns false
+ * when the write failed (for example over quota), so callers must not discard
+ * any other copy of the data on the strength of this save.
+ */
+export function saveTodos(
+  todos: TodoItem[],
+  storage: StorageLike | null = getStorage()
+): boolean {
+  if (!storage) return false;
   try {
     const envelope: PersistedState = { version: SCHEMA_VERSION, todos };
     storage.setItem(STORAGE_KEY, JSON.stringify(envelope));
+    return true;
   } catch {
-    // Ignore quota/permission errors in restricted frames.
+    return false;
   }
 }
 
 /** Remove the legacy key once its data has been carried forward. */
-export function clearLegacyStorage(): void {
-  const storage = getStorage();
+export function clearLegacyStorage(
+  storage: StorageLike | null = getStorage()
+): void {
   if (!storage) return;
   try {
     storage.removeItem(LEGACY_STORAGE_KEY);
