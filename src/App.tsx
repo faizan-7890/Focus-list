@@ -17,6 +17,7 @@ import {
   Keyboard,
   LayoutList,
   ListChecks,
+  LogOut,
   Monitor,
   Moon,
   Plus,
@@ -70,16 +71,10 @@ import { useFocusTimer } from './hooks/useFocusTimer';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useTheme, type ThemePreference } from './hooks/useTheme';
 import { playTaskCompleteSound } from './utils/soundEffects';
-import {
-  CORRUPT_BACKUP_KEY,
-  LEGACY_STORAGE_KEY,
-  clearLegacyStorage,
-  loadTodos,
-  mergeTodos,
-  parsePersistedState,
-  migrateTodos,
-  saveTodos,
-} from './utils/persistence';
+import type { User } from 'firebase/auth';
+import { useFirestoreTodos } from './hooks/useFirestoreTodos';
+import { useLocalImport } from './hooks/useLocalImport';
+import { signOutAndClearCache } from './hooks/useAuth';
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   light: 'Light',
@@ -144,7 +139,12 @@ const BOARD_COLUMNS: Array<{
   },
 ];
 
-export default function App() {
+interface AppProps {
+  /** The signed-in user; AuthGate only renders the app once someone signs in. */
+  user: User;
+}
+
+export default function App({ user }: AppProps) {
   // Kept in state and refreshed so a tab left open past midnight doesn't keep
   // using yesterday's date for "Today", presets and due-date labels.
   const [todayDate, setTodayDate] = useState(() => getTodayIsoDate());
@@ -172,16 +172,15 @@ export default function App() {
     });
   }, [todayDate]);
 
-  // Load through the versioned persistence layer: reads the current envelope,
-  // migrates older/legacy data forward, sanitizes every field, and falls back
-  // to the demo seed only when nothing usable is stored. See utils/persistence.
-  const [initialLoad] = useState(() =>
-    loadTodos(() => getInitialDemoTodos(todayDate))
-  );
-  const [todos, setTodos] = useState<TodoItem[]>(initialLoad.todos);
-  // True while legacy (v1) data has been read but not yet safely written to
-  // the versioned key; the legacy copy is only removed once that save succeeds.
-  const pendingLegacyClearRef = useRef(initialLoad.source === 'migrated-legacy');
+  // Tasks live in Firestore under this user (users/{uid}/todos). The hook
+  // keeps a live listener and writes every change made through setTodos.
+  const {
+    todos,
+    setTodos,
+    status: syncStatus,
+    serverSynced,
+    error: syncError,
+  } = useFirestoreTodos(user.uid);
 
   const [activeView, setActiveView] = useState<ViewFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -220,28 +219,6 @@ export default function App() {
   const taskInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    if (saveTodos(todos) && pendingLegacyClearRef.current) {
-      clearLegacyStorage();
-      pendingLegacyClearRef.current = false;
-    }
-  }, [todos]);
-
-  // A tab still running the old build keeps writing the legacy key. Merge
-  // those writes in as they happen instead of losing them.
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key !== LEGACY_STORAGE_KEY || !e.newValue) return;
-      const parsed = parsePersistedState(e.newValue);
-      if (!parsed) return;
-      const incoming = migrateTodos(parsed.todos, parsed.version);
-      pendingLegacyClearRef.current = true;
-      setTodos((prev) => mergeTodos(prev, incoming));
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
-
   const theme = useTheme();
 
   const showTransientNotice = (msg: string) => {
@@ -253,12 +230,28 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (initialLoad.recoveredFromError) {
-      setStatusBanner(
-        `Some saved tasks couldn't be read. The original data was kept in localStorage under "${CORRUPT_BACKUP_KEY}".`
-      );
-    }
-  }, [initialLoad]);
+    if (syncError) showTransientNotice(syncError.message);
+    // showTransientNotice is recreated every render; only react to new errors.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncError]);
+
+  // First sign-in on this device: carry over tasks saved in this browser
+  // before cloud sync, or seed the demo tasks for a brand-new account.
+  const pendingLocalImport = useLocalImport({
+    uid: user.uid,
+    todos,
+    setTodos,
+    serverSynced,
+    todayDate,
+    notify: (msg) => showTransientNotice(msg),
+  });
+
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const handleSignOut = () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    void signOutAndClearCache();
+  };
 
   const showUndoableNotice = (msg: string) => {
     setStatusBanner(msg);
@@ -629,6 +622,16 @@ export default function App() {
           </button>
           <button
             type="button"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            aria-label={`Sign out${user.email ? ` (${user.email})` : ''}`}
+            title={`Signed in as ${user.email ?? user.displayName ?? 'you'}. Click to sign out.`}
+            className="icon-btn text-slate-600 dark:text-slate-400 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-50"
+          >
+            <LogOut className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
             onClick={() => taskInputRef.current?.focus()}
             className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
@@ -756,6 +759,41 @@ export default function App() {
                   </div>
                 </div>
               </section>
+
+              {/* One-time offer to add tasks saved in this browser before sync */}
+              {pendingLocalImport && (
+                <div
+                  role="region"
+                  aria-label="Tasks saved in this browser"
+                  className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900 rounded-xl px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-3"
+                >
+                  <p className="text-slate-700 dark:text-slate-300">
+                    This browser has{' '}
+                    <strong className="font-semibold text-slate-900 dark:text-slate-100">
+                      {pendingLocalImport.count}{' '}
+                      {pendingLocalImport.count === 1 ? 'task' : 'tasks'}
+                    </strong>{' '}
+                    saved before sign-in that{' '}
+                    {pendingLocalImport.count === 1 ? "isn't" : "aren't"} in your account.
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={pendingLocalImport.dismiss}
+                      className="px-3 py-1.5 font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-stone-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                      Not now
+                    </button>
+                    <button
+                      type="button"
+                      onClick={pendingLocalImport.merge}
+                      className="px-3 py-1.5 font-semibold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 rounded-lg transition-colors"
+                    >
+                      Add to my account
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Task Capture Form */}
               <TaskInput
@@ -948,7 +986,23 @@ export default function App() {
               </div>
 
               {/* Task List View vs Priority Board View */}
-              {layoutMode === 'calendar' ? (
+              {syncStatus === 'loading' ? (
+                <div
+                  role="status"
+                  aria-label="Loading your tasks"
+                  className="bg-white dark:bg-slate-900 border border-stone-200/90 dark:border-slate-800 rounded-xl divide-y divide-stone-200/80 dark:divide-slate-800"
+                >
+                  {[0, 1, 2].map((row) => (
+                    <div key={row} className="px-4 py-4 flex items-start gap-3 animate-pulse">
+                      <div className="w-5 h-5 rounded-md bg-stone-200 dark:bg-slate-800 shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3.5 w-2/3 rounded bg-stone-200 dark:bg-slate-800" />
+                        <div className="h-2.5 w-1/3 rounded bg-stone-100 dark:bg-slate-800/60" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : layoutMode === 'calendar' ? (
                 <CalendarView
                   todos={visibleTodos}
                   todayDate={todayDate}
@@ -1320,6 +1374,7 @@ export default function App() {
         canUndo={undoRedo.canUndo}
         canRedo={undoRedo.canRedo}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        onSignOut={handleSignOut}
         onCycleTheme={theme.cyclePreference}
         themeLabel={THEME_LABELS[theme.preference]}
       />

@@ -1,6 +1,6 @@
 # Focuslist — Task & Priority Manager
 
-**Focuslist** is a local-first, keyboard-driven task and priority workspace built with React 19, TypeScript, and Tailwind CSS. Designed for high-signal daily execution, it combines structured deliverable capture, nested subtask checklists, switchable List and Priority Kanban Board views, a persistent **Deep Work & Fullscreen Zen Timer** with Pomodoro tracking and Web Audio chimes, a global **Command Palette (`Ctrl/Cmd + K`)**, and validated **JSON/CSV data portability**.
+**Focuslist** is a keyboard-driven task and priority workspace built with React 19, TypeScript, Tailwind CSS, and Firebase. Sign in with Google and your tasks sync across devices through Cloud Firestore, and keep working offline. Designed for high-signal daily execution, it combines structured deliverable capture, nested subtask checklists, switchable List and Priority Kanban Board views, a persistent **Deep Work & Fullscreen Zen Timer** with Pomodoro tracking and Web Audio chimes, a global **Command Palette (`Ctrl/Cmd + K`)**, and validated **JSON/CSV data portability**.
 
 ---
 
@@ -33,7 +33,8 @@
 - **Global Command Palette (`Ctrl/Cmd + K`)**: Jump to any view, toggle layout modes, switch the theme, trigger exports/imports, complete tasks, or create a new task directly from the command query.
 - **Light / Dark / System Theme**: A header toggle (and a *Switch Theme* command) cycles **Light → Dark → System**. The choice persists to `localStorage`, follows your OS when set to *System*, and is applied before first paint so there is no flash of the wrong theme on load.
 - **Validated JSON & CSV Import/Export**: Back up your workspace to `.json` or `.csv`, and import external files with a live validation preview supporting **Merge** or **Replace** modes.
-- **Versioned, Self-Healing Local Storage**: Tasks are saved under a versioned `{ version, todos }` envelope with an ordered migration path. On load, older/legacy data is migrated forward and every field is sanitized, so a future schema change or a single corrupt value can never silently wipe your workspace.
+- **Google Sign-In & Cloud Sync**: Sign-in is required. Each user's tasks are stored in Cloud Firestore (one document per task) and sync live across devices and tabs. An offline cache keeps the app usable without a connection and sends queued changes when you reconnect. Signing out clears this device's cached copy.
+- **Carries Over Browser Data**: On first sign-in, tasks saved in the browser by earlier versions are uploaded to a new account, or offered for merging into an existing one. The browser copy is kept as a backup.
 
 ---
 
@@ -109,7 +110,7 @@
 
 ### 4. Local-First Privacy with Spreadsheet Auditing & Cross-Device Migration
 - **Scenario**: A consultant needs a fast, zero-account task tracker that keeps data strictly in the browser while supporting weekly client reporting in Excel/Google Sheets.
-- **Workflow**: Track tasks locally throughout the week with instant `localStorage` persistence. On Friday, open the **Export / Import** modal and download a **CSV Spreadsheet** (including completed Pomodoro counts, priorities, due dates, and serialized subtasks) for weekly reporting, or export a **JSON Backup** to transfer the workspace to another machine.
+- **Workflow**: Track tasks throughout the week; every change is saved to your account instantly. On Friday, open the **Export / Import** modal and download a **CSV Spreadsheet** (including completed Pomodoro counts, priorities, due dates, and serialized subtasks) for weekly reporting, or export a **JSON Backup** to transfer the workspace to another machine.
 
 ---
 
@@ -122,8 +123,13 @@ Core state transformations, filtering, sorting, and serialization are decoupled 
 - `src/hooks/useFocusTimer.ts`: Custom React hook managing persistent timestamp-based countdowns, live `document.title` updates, browser notifications, and sound triggers.
 - `src/hooks/useTheme.ts`: Theme hook managing the Light/Dark/System preference — persistence, live OS-change tracking, and applying the `dark` class + `color-scheme` to `<html>`.
 - `src/components/ShortcutsModal.tsx`: The `?` keyboard shortcuts cheatsheet dialog.
-- `src/utils/persistence.ts`: Versioned `localStorage` layer — the `{ version, todos }` envelope, ordered migrations, per-field sanitization, and legacy-key recovery.
-- `src/utils/persistence.test.ts`: Unit tests for sanitization, envelope/legacy parsing, and migrations.
+- `src/lib/firebase.ts`: Firebase app, Auth and Firestore setup (offline cache, emulator switch). The web config here identifies the project and is not secret.
+- `src/AuthGate.tsx`, `src/components/SignInScreen.tsx`, `src/hooks/useAuth.ts`: Required Google sign-in, and sign-out that clears the local cache.
+- `src/hooks/useFirestoreTodos.ts`: Live Firestore listener plus a `setTodos` that writes only changed tasks. It never writes before the first snapshot, so an empty initial list can't wipe an account.
+- `src/utils/syncLogic.ts` (+ `.test.ts`): Pure diffing and batching used by the sync hook.
+- `src/hooks/useLocalImport.ts`: One-time carry-over of tasks saved in the browser before sign-in.
+- `src/utils/persistence.ts`: Task sanitization (shared by sync) and reading of pre-sync `localStorage` data.
+- `firestore.rules` (+ `tests/firestore.rules.test.ts`): Each user can only read and write their own tasks, and writes must have the exact task shape.
 - `src/utils/soundEffects.ts`: Zero-dependency Web Audio API synthesizer generating harmonic chimes for timer start, interval completion, and task completion.
 - `src/components/ZenModeModal.tsx`: Fullscreen distraction-free focus modal with SVG progress ring, live checklist interaction, and keyboard shortcuts (`Space`, `R`, `M`, `Esc`).
 - `src/components/FocusPanel.tsx`: Right-hand companion panel housing the 25m/5m timer readout, Zen Mode launcher, and interactive project workload chart.
@@ -143,16 +149,43 @@ Core state transformations, filtering, sorting, and serialization are decoupled 
 # Install dependencies
 npm install
 
-# Start the development server at http://localhost:3000
+# Start the development server at http://localhost:3000 (uses the real Firebase project)
 npm run dev
 ```
 
-### Running Unit Tests
+### Developing against local emulators (no real data touched)
+Requires Java 21+ for the Firebase emulators.
 ```bash
-npm test
+# Terminal 1: Auth + Firestore emulators (emulator UI at http://localhost:4000)
+npm run emulators
+
+# Terminal 2: the app, pointed at the emulators
+npm run dev:emulators
+```
+In emulator mode, "Continue with Google" opens the Auth emulator's test account page instead of real Google sign-in.
+
+### Running Tests
+```bash
+npm test            # unit tests
+npm run test:rules  # Firestore security rules, against the emulator (needs Java)
 ```
 
-### Building for Production
+### Building & Deploying
 ```bash
 npm run build
+npm run deploy      # build + deploy Hosting and Firestore rules (needs `npx firebase login`)
 ```
+
+### Firebase project setup (one-time)
+The app uses the Firebase project `focuslist-ee442`. In the [Firebase console](https://console.firebase.google.com/):
+1. **Authentication → Sign-in method**: enable **Google** and set a support email.
+2. **Firestore Database**: create the database in **production mode**. Pick the region closest to your users; it can't be changed later.
+3. **GitHub deploys**: run `npx firebase login`, then `npx firebase init hosting:github`. It creates a service account and the `FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442` repository secret. When it offers to write workflow files, keep the ones in `.github/workflows/` (or restore them with `git checkout .github`).
+4. **Google Cloud IAM**: give that service account the **Firebase Rules Admin** and **Cloud Datastore Index Admin** roles so CI can deploy the security rules.
+5. *(Recommended)* **Google Cloud → APIs & Services → Credentials**: restrict the browser API key to the `focuslist-ee442.web.app`, `focuslist-ee442.firebaseapp.com` and `localhost` referrers.
+6. **Pull request previews**: if Google sign-in fails on a preview URL with "unauthorized domain", add that domain under **Authentication → Settings → Authorized domains**.
+
+### Continuous deployment
+- **Pull requests**: lint, unit tests, build and rules tests run, then a Firebase Hosting preview channel is deployed and its URL is posted on the PR.
+- **Merges to `main`**: the same checks run, then the site deploys to `https://focuslist-ee442.web.app` and the Firestore rules are deployed.
+- Until the deploy secret exists, the deploy steps are skipped with a notice; the checks still run.
