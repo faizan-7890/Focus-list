@@ -39,7 +39,12 @@ const firebaseConfig = {
   appId: '1:886696919495:web:f9b73e5818ec9f14f219e2',
 };
 
-export const USE_EMULATORS = import.meta.env.VITE_USE_EMULATORS === 'true';
+/**
+ * Emulator mode: `npm run dev:emulators` (Vite `--mode emulators`, works on
+ * every OS including Windows PowerShell), or VITE_USE_EMULATORS=true.
+ */
+export const USE_EMULATORS =
+  import.meta.env.MODE === 'emulators' || import.meta.env.VITE_USE_EMULATORS === 'true';
 
 /**
  * Local emulators run under a `demo-` project id, which the Firebase CLI keeps
