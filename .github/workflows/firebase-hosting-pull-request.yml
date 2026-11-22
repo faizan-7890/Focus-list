@@ -55,11 +55,11 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
-      HAS_DEPLOY_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK != '' }}
+      HAS_DEPLOY_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442 != '' }}
     steps:
       - name: Skip if the deploy secret isn't set up yet
         if: env.HAS_DEPLOY_SECRET != 'true'
-        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK is not set; skipping preview deploy. Run 'firebase init hosting:github' to create it."
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442 is not set; skipping preview deploy. Run 'firebase init hosting:github' to create it."
       - uses: actions/checkout@v4
         if: env.HAS_DEPLOY_SECRET == 'true'
       - uses: actions/download-artifact@v4
@@ -71,6 +71,6 @@ jobs:
         if: env.HAS_DEPLOY_SECRET == 'true'
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK }}
-          projectId: stunning-dock-j6pck
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442 }}
+          projectId: focuslist-ee442
           expires: 7d

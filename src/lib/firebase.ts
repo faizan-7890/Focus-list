@@ -17,24 +17,26 @@ import {
 } from 'firebase/firestore';
 
 /**
- * Firebase web config for the `stunning-dock-j6pck` project.
+ * Firebase web config for the `focuslist-ee442` project.
  *
  * These values identify the project; they are not secrets (Firebase documents
  * them as safe to ship in client code). Access to data is enforced by the
  * Firestore security rules in `firestore.rules`.
  *
- * `authDomain` is the Hosting domain (`*.web.app`) rather than the default
- * `*.firebaseapp.com`: Hosting serves the `/__/auth/` handler on its own
- * domain, which keeps the sign-in flow same-site for browsers that block
- * third-party storage (Safari, and Chrome without third-party cookies).
+ * `authDomain` is the default `*.firebaseapp.com`, whose sign-in handler
+ * always exists, so sign-in works locally even before the first Hosting
+ * deploy. Popup sign-in (the normal path) works with it in every browser.
+ * After the site is live, switching this to `focuslist-ee442.web.app` makes
+ * the redirect fallback same-site too, for browsers that block third-party
+ * storage (Safari, and Chrome without third-party cookies).
  */
 const firebaseConfig = {
-  apiKey: 'AIzaSyBm8bwTBew_w0f2qo_oqIn5_2VYmgn2VEg',
-  authDomain: 'stunning-dock-j6pck.web.app',
-  projectId: 'stunning-dock-j6pck',
-  storageBucket: 'stunning-dock-j6pck.firebasestorage.app',
-  messagingSenderId: '953248612426',
-  appId: '1:953248612426:web:e8c7c8abc7181ce72226b3',
+  apiKey: 'AIzaSyCTacv7CR3ZWWh9ZfpJ3_pkj4sWwwyndPQ',
+  authDomain: 'focuslist-ee442.firebaseapp.com',
+  projectId: 'focuslist-ee442',
+  storageBucket: 'focuslist-ee442.firebasestorage.app',
+  messagingSenderId: '886696919495',
+  appId: '1:886696919495:web:f9b73e5818ec9f14f219e2',
 };
 
 export const USE_EMULATORS = import.meta.env.VITE_USE_EMULATORS === 'true';

@@ -177,15 +177,15 @@ npm run deploy      # build + deploy Hosting and Firestore rules (needs `npx fir
 ```
 
 ### Firebase project setup (one-time)
-The app uses the Firebase project `stunning-dock-j6pck`. In the [Firebase console](https://console.firebase.google.com/):
+The app uses the Firebase project `focuslist-ee442`. In the [Firebase console](https://console.firebase.google.com/):
 1. **Authentication → Sign-in method**: enable **Google** and set a support email.
 2. **Firestore Database**: create the database in **production mode**. Pick the region closest to your users; it can't be changed later.
-3. **GitHub deploys**: run `npx firebase login`, then `npx firebase init hosting:github`. It creates a service account and the `FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK` repository secret. When it offers to write workflow files, keep the ones in `.github/workflows/` (or restore them with `git checkout .github`).
+3. **GitHub deploys**: run `npx firebase login`, then `npx firebase init hosting:github`. It creates a service account and the `FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442` repository secret. When it offers to write workflow files, keep the ones in `.github/workflows/` (or restore them with `git checkout .github`).
 4. **Google Cloud IAM**: give that service account the **Firebase Rules Admin** and **Cloud Datastore Index Admin** roles so CI can deploy the security rules.
-5. *(Recommended)* **Google Cloud → APIs & Services → Credentials**: restrict the browser API key to the `stunning-dock-j6pck.web.app`, `stunning-dock-j6pck.firebaseapp.com` and `localhost` referrers.
+5. *(Recommended)* **Google Cloud → APIs & Services → Credentials**: restrict the browser API key to the `focuslist-ee442.web.app`, `focuslist-ee442.firebaseapp.com` and `localhost` referrers.
 6. **Pull request previews**: if Google sign-in fails on a preview URL with "unauthorized domain", add that domain under **Authentication → Settings → Authorized domains**.
 
 ### Continuous deployment
 - **Pull requests**: lint, unit tests, build and rules tests run, then a Firebase Hosting preview channel is deployed and its URL is posted on the PR.
-- **Merges to `main`**: the same checks run, then the site deploys to `https://stunning-dock-j6pck.web.app` and the Firestore rules are deployed.
+- **Merges to `main`**: the same checks run, then the site deploys to `https://focuslist-ee442.web.app` and the Firestore rules are deployed.
 - Until the deploy secret exists, the deploy steps are skipped with a notice; the checks still run.

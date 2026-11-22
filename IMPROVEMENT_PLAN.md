@@ -111,9 +111,9 @@ A project nobody can try doesn't count. Deploy it.
 
 - [ ] **Deploy to Firebase Hosting**: the code, rules and GitHub workflows are in place
   (see "Firebase project setup" in the README). Finish the one-time console steps, then every
-  merge to `main` deploys to `https://stunning-dock-j6pck.web.app`.
+  merge to `main` deploys to `https://focuslist-ee442.web.app`.
 - [ ] **Add the live link** to the repo: GitHub → repo → ⚙️ (top right) → "Website",
-  paste `https://stunning-dock-j6pck.web.app`. Also add it to the top of the README.
+  paste `https://focuslist-ee442.web.app`. Also add it to the top of the README.
 - [ ] **Add one screenshot or GIF** of the app to the README so it's visible without
   running anything.
 

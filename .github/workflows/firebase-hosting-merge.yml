@@ -17,7 +17,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      HAS_DEPLOY_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK != '' }}
+      HAS_DEPLOY_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,14 +40,14 @@ jobs:
 
       - name: Skip deploy if the deploy secret isn't set up yet
         if: env.HAS_DEPLOY_SECRET != 'true'
-        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK is not set; skipping deploy. Run 'firebase init hosting:github' to create it."
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442 is not set; skipping deploy. Run 'firebase init hosting:github' to create it."
       - name: Deploy hosting (live)
         if: env.HAS_DEPLOY_SECRET == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK }}
-          projectId: stunning-dock-j6pck
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442 }}
+          projectId: focuslist-ee442
           channelId: live
 
       # The service account created by `firebase init hosting:github` can only
@@ -57,7 +57,7 @@ jobs:
         if: env.HAS_DEPLOY_SECRET == 'true'
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK }}
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FOCUSLIST_EE442 }}
       - name: Deploy Firestore rules and indexes
         if: env.HAS_DEPLOY_SECRET == 'true'
-        run: npx firebase deploy --only firestore --project stunning-dock-j6pck --non-interactive
+        run: npx firebase deploy --only firestore --project focuslist-ee442 --non-interactive
