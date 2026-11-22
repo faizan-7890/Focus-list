@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// Focuslist security rules.
+//
+// Each user's tasks live at /users/{uid}/todos/{todoId}. A signed-in user can
+// read and write only their own tasks, and every write must have the exact
+// shape the app stores (see sanitizeTodo in src/utils/persistence.ts).
+// Everything else is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validSubtasks(list) {
+      // Rules can't loop over list items, so subtasks are checked as a
+      // bounded list here and fully sanitized by the app on read.
+      return list is list && list.size() <= 200;
+    }
+
+    function validTodo(todo, todoId) {
+      return todo.keys().hasAll([
+          'id', 'title', 'notes', 'completed', 'priority', 'category',
+          'dueDate', 'createdAt', 'order', 'subtasks', 'completedPomodoros'
+        ])
+        && todo.keys().hasOnly([
+          'id', 'title', 'notes', 'completed', 'priority', 'category',
+          'dueDate', 'createdAt', 'order', 'subtasks', 'completedPomodoros'
+        ])
+        && todo.id == todoId
+        && todo.title is string && todo.title.size() > 0 && todo.title.size() <= 500
+        && todo.notes is string && todo.notes.size() <= 10000
+        && todo.completed is bool
+        && todo.priority in ['low', 'medium', 'high']
+        && todo.category in ['Personal', 'Work', 'Errands', 'Study']
+        && todo.dueDate is string
+        && (todo.dueDate == '' || todo.dueDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+        && todo.createdAt is number
+        && todo.order is number
+        && todo.completedPomodoros is int && todo.completedPomodoros >= 0
+        && validSubtasks(todo.subtasks);
+    }
+
+    match /users/{uid}/todos/{todoId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validTodo(request.resource.data, todoId);
+    }
+
+    // Deny anything not matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

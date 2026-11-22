@@ -1,0 +1,76 @@
+# Checks every pull request, then deploys a Firebase Hosting preview channel
+# and comments its URL on the PR.
+name: PR checks and preview deploy
+
+on: pull_request
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    name: Lint, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  rules:
+    name: Firestore security rules tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npm run test:rules
+
+  preview:
+    name: Deploy preview
+    needs: [test, rules]
+    # Secrets aren't available to PRs from forks.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      HAS_DEPLOY_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK != '' }}
+    steps:
+      - name: Skip if the deploy secret isn't set up yet
+        if: env.HAS_DEPLOY_SECRET != 'true'
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK is not set; skipping preview deploy. Run 'firebase init hosting:github' to create it."
+      - uses: actions/checkout@v4
+        if: env.HAS_DEPLOY_SECRET == 'true'
+      - uses: actions/download-artifact@v4
+        if: env.HAS_DEPLOY_SECRET == 'true'
+        with:
+          name: dist
+          path: dist
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: env.HAS_DEPLOY_SECRET == 'true'
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK }}
+          projectId: stunning-dock-j6pck
+          expires: 7d

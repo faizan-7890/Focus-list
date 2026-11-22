@@ -1,0 +1,63 @@
+# On every push to main: run the checks, deploy the site to the live channel,
+# then deploy the Firestore security rules and indexes.
+name: Deploy to Firebase on merge
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-deploy-live
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_DEPLOY_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:rules
+      - run: npm run build
+
+      - name: Skip deploy if the deploy secret isn't set up yet
+        if: env.HAS_DEPLOY_SECRET != 'true'
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK is not set; skipping deploy. Run 'firebase init hosting:github' to create it."
+      - name: Deploy hosting (live)
+        if: env.HAS_DEPLOY_SECRET == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK }}
+          projectId: stunning-dock-j6pck
+          channelId: live
+
+      # The service account created by `firebase init hosting:github` can only
+      # deploy Hosting by default. Grant it "Firebase Rules Admin" and
+      # "Cloud Datastore Index Admin" in Google Cloud IAM for this step.
+      - name: Authenticate for rules deploy
+        if: env.HAS_DEPLOY_SECRET == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUNNING_DOCK_J6PCK }}
+      - name: Deploy Firestore rules and indexes
+        if: env.HAS_DEPLOY_SECRET == 'true'
+        run: npx firebase deploy --only firestore --project stunning-dock-j6pck --non-interactive
