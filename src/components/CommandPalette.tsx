@@ -9,7 +9,6 @@ import {
   Keyboard,
   Layers,
   LayoutList,
-  LogOut,
   Moon,
   Plus,
   RotateCcw,
@@ -43,7 +42,6 @@ export interface CommandPaletteProps {
   canRedo?: boolean;
   onCycleTheme?: () => void;
   onOpenShortcuts?: () => void;
-  onSignOut?: () => void;
   themeLabel?: string;
 }
 
@@ -79,7 +77,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   canRedo = false,
   onCycleTheme,
   onOpenShortcuts,
-  onSignOut,
   themeLabel,
 }) => {
   const [query, setQuery] = useState('');
@@ -157,20 +154,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onSelect: () => {
           onClose();
           onOpenShortcuts();
-        },
-      });
-    }
-
-    if (onSignOut) {
-      base.push({
-        id: 'cmd-sign-out',
-        label: 'Sign Out',
-        group: 'Quick Actions',
-        keywords: 'sign out log out logout account switch user',
-        icon: <LogOut className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />,
-        onSelect: () => {
-          onClose();
-          onSignOut();
         },
       });
     }
@@ -434,7 +417,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onToggleTodo,
     onCycleTheme,
     onOpenShortcuts,
-    onSignOut,
     themeLabel,
   ]);
 
