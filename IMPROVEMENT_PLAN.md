@@ -109,11 +109,10 @@ For each: after fixing, add a test in the matching `*.test.ts` file and run `npm
 
 A project nobody can try doesn't count. Deploy it.
 
-- [ ] **Deploy to Firebase Hosting**: the code, rules and GitHub workflows are in place
-  (see "Firebase project setup" in the README). Finish the one-time console steps, then every
-  merge to `main` deploys to `https://focuslist-ee442.web.app`.
+- [ ] **Deploy to Vercel** (free): sign in at vercel.com with GitHub, "Import"
+  Focus-list, accept the defaults (Vite is auto-detected), deploy.
 - [ ] **Add the live link** to the repo: GitHub → repo → ⚙️ (top right) → "Website",
-  paste `https://focuslist-ee442.web.app`. Also add it to the top of the README.
+  paste the Vercel URL. Also add it to the top of the README.
 - [ ] **Add one screenshot or GIF** of the app to the README so it's visible without
   running anything.
 
